@@ -15,16 +15,10 @@ import { getMockHealthData } from '../services/mockData';
 import { useTheme } from '../theme/ThemeContext';
 import { AppColors } from '../theme/useAppTheme';
 
-// Derive environment label from EXPO_PUBLIC_ENV_NAME, falling back to a
-// short token extracted from the API URL (e.g. "localhost" → "dev").
-const getEnvLabel = (): string => {
-  const explicit = process.env.EXPO_PUBLIC_ENV_NAME;
-  if (explicit) return explicit;
-  const url = process.env.EXPO_PUBLIC_API_URL ?? '';
-  if (url.includes('staging')) return 'staging';
-  if (url.includes('prod')) return 'prod';
-  return 'dev';
-};
+import { config } from '../config';
+
+// Derive environment label from config
+const getEnvLabel = (): string => config.envName;
 
 const getEnvBadgeColor = (label: string): string => {
   switch (label.toLowerCase()) {
@@ -50,7 +44,7 @@ export const HealthScreen = () => {
 
   const envLabel = getEnvLabel();
   const envBadgeColor = getEnvBadgeColor(envLabel);
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+  const apiUrl = config.apiUrl;
   const shortApiUrl = (() => {
     try {
       return new URL(apiUrl).host;
@@ -201,6 +195,54 @@ export const HealthScreen = () => {
             </View>
           )}
 
+          {/* ── Configuration Errors ────────────────────────────────────────── */}
+          {!config.isValid && (
+            <View
+              style={styles.configErrorContainer}
+              accessible
+              accessibilityRole="alert"
+            >
+              <Text style={styles.configErrorTitle}>⚠️ Configuration Issues</Text>
+              {config.errors.map((err, index) => (
+                <Text key={index} style={styles.configErrorText}>• {err}</Text>
+              ))}
+            </View>
+          )}
+
+          {/* ── Environment & Blockchain Section ─────────────────────────── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              Environment & Blockchain
+            </Text>
+            <View style={styles.card}>
+              <View style={styles.infoRow} accessible accessibilityLabel={`Network: ${config.network}`}>
+                <Text style={styles.infoLabel}>Network:</Text>
+                <Text style={styles.infoValue}>{config.network.toUpperCase()}</Text>
+              </View>
+
+              <View style={styles.infoRow} accessible accessibilityLabel={`API URL: ${config.apiUrl}`}>
+                <Text style={styles.infoLabel}>Backend URL:</Text>
+                <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="middle">
+                  {config.apiUrl}
+                </Text>
+              </View>
+
+              <View style={styles.infoRow} accessible accessibilityLabel={`Contract ID: ${config.sorobanContractId || 'Not Configured'}`}>
+                <Text style={styles.infoLabel}>Contract ID:</Text>
+                <Text style={[styles.infoValue, !config.sorobanContractId && { color: colors.warning }]} numberOfLines={1} ellipsizeMode="middle">
+                  {config.sorobanContractId || 'None'}
+                </Text>
+              </View>
+
+              <View style={styles.infoRow} accessible accessibilityLabel={`Config Status: ${config.isValid ? 'Valid' : 'Invalid'}`}>
+                <Text style={styles.infoLabel}>Config Status:</Text>
+                <Text style={[styles.infoValue, { color: config.isValid ? colors.success : colors.error }]}>
+                  {config.isValid ? 'VALID ✅' : 'INVALID ❌'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
           {/* ── Health Data Card ────────────────────────────────────────── */}
           {healthData && (
             <View
@@ -282,17 +324,6 @@ export const HealthScreen = () => {
               <View
                 style={styles.statItem}
                 accessible
-                accessibilityLabel={`API URL: ${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'}`}
-              >
-                <Text style={styles.statLabel} importantForAccessibility="no-hide-descendants">API URL</Text>
-                <Text style={styles.statValue} numberOfLines={1} importantForAccessibility="no-hide-descendants">
-                  {process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'}
-                </Text>
-              </View>
-
-              <View
-                style={styles.statItem}
-                accessible
                 accessibilityLabel={`Platform: ${Platform.OS === 'android' ? 'Android' : 'iOS'}`}
               >
                 <Text style={styles.statLabel} importantForAccessibility="no-hide-descendants">Platform</Text>
@@ -327,7 +358,7 @@ export const HealthScreen = () => {
               </Text>
               <Text style={styles.tipText}>
                 • Check if API URL is correct:{' '}
-                {process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'}
+                {config.apiUrl}
               </Text>
               <Text style={styles.tipText}>
                 • For Android emulator, use 10.0.2.2 instead of localhost
@@ -447,6 +478,25 @@ const makeStyles = (colors: AppColors) =>
     errorText: {
       color: colors.error,
       fontSize: 14,
+    },
+    configErrorContainer: {
+      backgroundColor: colors.errorBg,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.errorBorder,
+    },
+    configErrorTitle: {
+      color: colors.error,
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 8,
+    },
+    configErrorText: {
+      color: colors.error,
+      fontSize: 14,
+      marginBottom: 4,
     },
     card: {
       backgroundColor: colors.surface,

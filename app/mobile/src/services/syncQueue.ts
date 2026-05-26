@@ -1,10 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 import { AidDetails, fetchAidDetails } from './aidApi';
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000');
+import { config } from '../config';
+
+const API_URL = config.apiUrl;
 
 const SYNC_QUEUE_STORAGE_KEY = '@soter/sync-queue';
 const DEFAULT_MAX_RETRIES = 5;
