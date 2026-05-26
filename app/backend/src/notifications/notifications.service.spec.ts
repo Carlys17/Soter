@@ -134,6 +134,19 @@ describe('NotificationsService', () => {
       );
     });
 
+    it('should configure exponential backoff retries for email jobs', async () => {
+      await service.sendEmail('test@example.com', 'Subject', 'Message');
+
+      expect(queueMock.add).toHaveBeenCalledWith(
+        'send-email',
+        expect.any(Object),
+        expect.objectContaining({
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+        }),
+      );
+    });
+
     it('should update outbox record to enqueued with jobId after successful enqueue', async () => {
       await service.sendEmail('test@example.com', 'Subject', 'Message');
 
@@ -224,6 +237,19 @@ describe('NotificationsService', () => {
           outboxId: mockOutbox.id,
         }),
         expect.any(Object),
+      );
+    });
+
+    it('should configure exponential backoff retries for SMS jobs', async () => {
+      await service.sendSms('+1234567890', 'Test SMS');
+
+      expect(queueMock.add).toHaveBeenCalledWith(
+        'send-sms',
+        expect.any(Object),
+        expect.objectContaining({
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+        }),
       );
     });
 

@@ -146,8 +146,10 @@ describe('NotificationProcessor', () => {
   });
 
   describe('onFailed', () => {
-    it('should update outbox record to failed with retryCount increment and lastError when outboxId is present', async () => {
-      const job = makeJob({ outboxId: 'outbox-abc' });
+    it('should update outbox record to failed with retryCount increment and lastError when outboxId is present and exhausted', async () => {
+      const job = makeJob({ outboxId: 'outbox-abc' }) as Job<any, any, string>;
+      job.opts = { attempts: 1 } as any;
+      job.attemptsMade = 1;
       const error = new Error('Something went wrong');
 
       await processor.onFailed(job, error);
@@ -158,6 +160,24 @@ describe('NotificationProcessor', () => {
           status: 'failed',
           retryCount: { increment: 1 },
           lastError: 'Something went wrong',
+        },
+      });
+    });
+
+    it('should keep status enqueued while retries remain and still increment retryCount', async () => {
+      const job = makeJob({ outboxId: 'outbox-abc' }) as Job<any, any, string>;
+      job.opts = { attempts: 3 } as any;
+      job.attemptsMade = 1;
+      const error = new Error('Temporary failure');
+
+      await processor.onFailed(job, error);
+
+      expect(prismaMock.notificationOutbox.update).toHaveBeenCalledWith({
+        where: { id: 'outbox-abc' },
+        data: {
+          status: 'enqueued',
+          retryCount: { increment: 1 },
+          lastError: 'Temporary failure',
         },
       });
     });

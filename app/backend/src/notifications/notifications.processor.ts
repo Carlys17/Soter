@@ -119,11 +119,16 @@ export class NotificationProcessor extends WorkerHost {
       return;
     }
 
+    const maxAttempts =
+      typeof job.opts?.attempts === 'number' ? job.opts.attempts : 1;
+    const exhausted = job.attemptsMade >= maxAttempts;
+    const status = exhausted ? 'failed' : 'enqueued';
+
     try {
       await this.prisma.notificationOutbox.update({
         where: { id: job.data.outboxId },
         data: {
-          status: 'failed',
+          status,
           retryCount: { increment: 1 },
           lastError: error.message,
         },
@@ -131,7 +136,7 @@ export class NotificationProcessor extends WorkerHost {
     } catch (err) {
       // Swallow — worker events must not throw
       this.logger.error(
-        `Failed to update outbox record ${job.data.outboxId} to failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to update outbox record ${job.data.outboxId} to ${status}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
