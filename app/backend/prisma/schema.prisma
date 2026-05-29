@@ -296,7 +296,7 @@ model Organization {
   sessions  Session[]
   verificationSessions VerificationSession[]
   verificationRequests VerificationRequest[]
-  evidenceQueueItems EvidenceQueueItem[]
+  evidenceQueueItems EvidenceQueueItem[] @relation("OrganizationEvidenceQueueItems")
 
   @@index([deletedAt])
 }
@@ -444,7 +444,7 @@ model EvidenceQueueItem {
   lastError     String?
   ownerId       String         // Actor who queued this
   orgId         String?        // Organization scope for deduplication
-  organization  Organization?  @relation(fields: [orgId], references: [id])
+  organization  Organization?  @relation("OrganizationEvidenceQueueItems", fields: [orgId], references: [id])
   nearDuplicateOf String?     // Points to original if this is a near-duplicate
   metadata      Json?          // Additional info (e.g., associated claimId)
   createdAt     DateTime       @default(now())
