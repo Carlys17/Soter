@@ -681,3 +681,28 @@ model EntityLink {
   @@index([confidenceScore])
   @@index([isActive])
 }
+
+// ============================================================================
+// DEPLOYMENT METADATA
+// ============================================================================
+
+/// Stores contract deployment metadata for reporting configured contracts and provenance
+model DeploymentMetadata {
+  id           String   @id @default(cuid())
+  contractName String   // e.g., "AidEscrow", "TokenContract"
+  network      String   // e.g., "testnet", "mainnet"
+  contractId   String   // The deployed contract address/ID
+  wasmHash     String   // Hash of the deployed WASM binary
+  deployedAt   DateTime // When the contract was deployed
+  commitSha    String?  // Git commit SHA of the code when deployed
+  deployer     String?  // Address or ID of the deployer
+  transactionHash String? // Hash of the deployment transaction
+  metadata     Json?    // Additional deployment metadata (environment variables, flags, etc.)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([network, contractName])
+  @@index([network])
+  @@index([contractId])
+  @@index([deployedAt])
+}

@@ -39,6 +39,7 @@ import { RetentionPolicyModule } from './retention-policy/retention-policy.modul
 import { InvitesModule } from './orgs/invites.module';
 import { AdminSearchModule } from './search/admin-search.module';
 import { EntityLinkingModule } from './entity-linking/entity-linking.module';
+import { DeploymentMetadataModule } from './deployment-metadata/deployment-metadata.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { AdaptiveRateLimitGuard } from './common/guards/adaptive-rate-limit.guard';
 import { DeprecationInterceptor } from './common/interceptors/deprecation.interceptor';
@@ -110,6 +111,7 @@ import { SandboxModule } from './sandbox/sandbox.module';
     InvitesModule,
     AdminSearchModule,
     EntityLinkingModule,
+    DeploymentMetadataModule,
     SandboxModule,
     RedisModule.forRootAsync({
       imports: [ConfigModule],
