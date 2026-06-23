@@ -8,11 +8,14 @@ from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
 import logging
+import uuid
+from contextvars import ContextVar
+from pythonjsonlogger import jsonlogger
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Response
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse
 from exceptions import AIServiceError
 from schemas.errors import ErrorDetail, ErrorEnvelope
 import time
@@ -39,14 +42,42 @@ from schemas.humanitarian import (
 )
 from services.humanitarian_verification import HumanitarianVerificationService
 
+# Context variable for correlation ID
+correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
+
+
+class CorrelationIdFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.correlationId = correlation_id_var.get()
+        return True
+
+
 limiter = Limiter(key_func=get_remote_address)
 
+# Set up structured logging with correlation ID
 log_level_name = settings.log_level.upper() if hasattr(settings, "log_level") else "INFO"
 log_level = getattr(logging, log_level_name, logging.INFO)
-logging.basicConfig(
-    level=log_level,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+
+# Configure root logger
+root_logger = logging.getLogger()
+root_logger.setLevel(log_level)
+
+# Remove default handlers
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+
+# Create JSON formatter
+json_formatter = jsonlogger.JsonFormatter(
+    "%(asctime)s %(levelname)s %(name)s %(message)s %(correlationId)s"
 )
+
+# Create stream handler with JSON formatter
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(json_formatter)
+stream_handler.addFilter(CorrelationIdFilter())
+root_logger.addHandler(stream_handler)
+
+# Get logger for this module
 logger = logging.getLogger(__name__)
 
 
@@ -178,6 +209,29 @@ async def legacy_redirect_middleware(request: Request, call_next):
             return RedirectResponse(url=target, status_code=308)
 
     return await call_next(request)
+
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    correlation_id = request.headers.get("x-correlation-id") or request.headers.get("x-request-id") or str(uuid.uuid4())
+    
+    # Attach correlation ID to request state
+    request.state.correlation_id = correlation_id
+    
+    # Set context variable for logging
+    correlation_id_token = correlation_id_var.set(correlation_id)
+    
+    try:
+        response = await call_next(request)
+    finally:
+        correlation_id_var.reset(correlation_id_token)
+    
+    # Set correlation ID headers in response
+    response.headers["x-correlation-id"] = correlation_id
+    response.headers["x-request-id"] = correlation_id
+    response.headers["trace_id"] = correlation_id
+    
+    return response
 
 
 @app.middleware("http")
