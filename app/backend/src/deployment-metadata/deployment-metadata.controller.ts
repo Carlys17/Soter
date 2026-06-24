@@ -74,7 +74,7 @@ export class DeploymentMetadataController {
     );
     try {
       return await this.deploymentMetadataService.create(dto);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Failed to create deployment metadata:', error);
       if ((error as { code?: string }).code === 'P2002') {
         throw new BadRequestException(

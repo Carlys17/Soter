@@ -7,6 +7,11 @@ import { Roles } from '../auth/roles.decorator';
 import { AppRole } from '@prisma/client';
 import { AdaptiveRateLimitGuard } from '../common/guards/adaptive-rate-limit.guard';
 
+interface SearchUser {
+  orgId?: string | null;
+  ngoId?: string | null;
+}
+
 @Controller('admin')
 @UseGuards(ApiKeyGuard, RolesGuard, AdaptiveRateLimitGuard)
 export class AdminSearchController {
@@ -19,7 +24,8 @@ export class AdminSearchController {
     @Query('entity') entity: string,
     @Req() req: Request,
   ) {
-    const orgId = req.user?.orgId ?? req.user?.ngoId ?? '';
+    const user = req.user as SearchUser | undefined;
+    const orgId: string = user?.orgId ?? user?.ngoId ?? '';
     return this.searchService.search(query, entity, orgId);
   }
 }

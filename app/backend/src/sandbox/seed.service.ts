@@ -72,13 +72,11 @@ export class SeedService {
         status: 'draft',
         budget: 0,
         ngoId: DEMO_TENANT_SEED.ngoId,
-        metadata: JSON.parse(
-          JSON.stringify({
-            description: DEMO_TENANT_SEED.description,
-            region: DEMO_TENANT_SEED.region,
-            isTenantMarker: true,
-          }),
-        ) as Record<string, unknown>,
+        metadata: {
+          description: DEMO_TENANT_SEED.description,
+          region: DEMO_TENANT_SEED.region,
+          isTenantMarker: true,
+        } as Record<string, unknown>,
       },
     });
 
@@ -109,7 +107,7 @@ export class SeedService {
             status: seed.status,
             budget: seed.budget,
             ngoId: DEMO_TENANT_SEED.ngoId,
-            metadata: JSON.parse(JSON.stringify(seed.metadata)) as Record<string, unknown>,
+            metadata: (seed.metadata ?? {}) as Record<string, unknown>,
           },
         });
         created++;

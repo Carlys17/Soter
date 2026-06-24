@@ -149,9 +149,13 @@ export class VerificationInboxService {
       status,
       reviewedAt: new Date(),
       reviewedBy: reviewerId,
-      ...(nextStepMessage ? { nextStepMessage } : {}),
-      ...(rejectionReason ? { rejectionReason } : {}),
     };
+    if (nextStepMessage) {
+      updateData.nextStepMessage = nextStepMessage;
+    }
+    if (rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
+    }
 
     const updated = await this.prisma.verificationRequest.update({
       where: { id },

@@ -135,7 +135,9 @@ export class DeploymentMetadataService {
   /**
    * Map Prisma model to response DTO
    */
-  private mapToResponse(metadata: DeploymentMetadata): DeploymentMetadataResponseDto {
+  private mapToResponse(
+    metadata: DeploymentMetadata,
+  ): DeploymentMetadataResponseDto {
     return {
       id: metadata.id,
       contractName: metadata.contractName,
@@ -146,7 +148,8 @@ export class DeploymentMetadataService {
       commitSha: metadata.commitSha ?? undefined,
       deployer: metadata.deployer ?? undefined,
       transactionHash: metadata.transactionHash ?? undefined,
-      metadata: (metadata.metadata as Record<string, unknown> | null) ?? undefined,
+      metadata:
+        (metadata.metadata as Record<string, unknown> | null) ?? undefined,
       createdAt: metadata.createdAt,
       updatedAt: metadata.updatedAt,
     };
