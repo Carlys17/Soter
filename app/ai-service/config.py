@@ -59,6 +59,8 @@ class Settings(BaseSettings):
 
     # Redis and Celery settings
     redis_url: str = "redis://localhost:6379/0"
+    task_max_retries: int = 3
+    task_retry_delay_seconds: int = 30
 
     # Backend webhook URL for notifications
     backend_webhook_url: Optional[str] = "http://localhost:3001/ai/webhook"
