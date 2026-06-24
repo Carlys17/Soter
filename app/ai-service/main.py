@@ -97,6 +97,7 @@ _LEGACY_TO_V1: dict = {
 # Prefix-based redirects for parameterised routes (matched in order).
 _LEGACY_PREFIX_MAP: list = [
     ("/ai/status/", "/v1/ai/status/"),
+    ("/ai/jobs/", "/v1/ai/jobs/"),
     ("/ai/task/", "/v1/ai/task/"),
 ]
 
