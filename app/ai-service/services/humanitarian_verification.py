@@ -138,7 +138,7 @@ class HumanitarianVerificationService:
         if settings.groq_api_key:
             providers.append("groq")
         if not providers:
-            return True
+            return False
 
         return all(
             provider in self.breakers and not self.breakers[provider].allow_request()
