@@ -13,6 +13,8 @@ import type {
     VerificationStep,
 } from '@/types/verification';
 import { useActivity } from '@/hooks/useActivity';
+import { useNetworkGuard } from '@/hooks/useNetworkGuard';
+import { NetworkMismatchBanner } from '@/components/NetworkMismatchBanner';
 
 /* ─── Accepted image MIME types ─────────────────────────────────────────── */
 
@@ -290,6 +292,7 @@ function readVerificationDraftFromStorage(): VerificationDraft | null {
 export const VerificationFlow: React.FC = () => {
     const uid = useId();
     const { trackJob } = useActivity();
+    const { isMismatch } = useNetworkGuard();
     const [restoredDraft] = useState<VerificationDraft | null>(() =>
         readVerificationDraftFromStorage(),
     );
@@ -522,7 +525,7 @@ export const VerificationFlow: React.FC = () => {
 
     /* ── Submit button disabled state ───────────────────────────────────────── */
 
-    const canSubmit = imageFile !== null || textInput.trim().length > 0;
+    const canSubmit = (imageFile !== null || textInput.trim().length > 0) && !isMismatch;
 
     /* ── Render ──────────────────────────────────────────────────────────────── */
 
@@ -634,6 +637,10 @@ function StepUpload({
             aria-describedby={errors.form ? formErrorId : undefined}
         >
             <h2 className="text-lg font-semibold mb-4">Submit Evidence for Verification</h2>
+
+            <div className="mb-6">
+                <NetworkMismatchBanner />
+            </div>
 
             {!imageFile && textInput.trim().length === 0 && (
                 <div className="mb-6">
