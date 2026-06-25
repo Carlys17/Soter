@@ -4,7 +4,6 @@ import { Reflector } from '@nestjs/core';
 import { of } from 'rxjs';
 import { CacheResponseInterceptor } from './cache-response.interceptor';
 import { RedisService } from '../../../cache/redis.service';
-import { CACHE_RESPONSE_KEY } from '../decorators/cache-response.decorator';
 
 describe('CacheResponseInterceptor', () => {
   let interceptor: CacheResponseInterceptor;

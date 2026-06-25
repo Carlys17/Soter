@@ -139,10 +139,10 @@ export class CacheInvalidationService {
   /**
    * Get cache statistics
    */
-  async getCacheStats(): Promise<{
+  getCacheStats(): {
     totalKeys: number;
     patterns: { pattern: string; count: number }[];
-  }> {
+  } {
     // This would require implementing a SCAN-based key counter
     // For now, return a placeholder
     return {

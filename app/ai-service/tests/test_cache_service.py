@@ -172,12 +172,14 @@ class TestCachedResponseDecorator:
         """Test async function with cache miss"""
         mock_func = Mock(return_value="result")
 
-        # Mock the app state
-        with patch("services.cache.app") as mock_app:
+        # Mock the main module's app attribute
+        with patch("services.cache.main") as mock_main:
+            mock_app = Mock()
             mock_cache = Mock()
             mock_cache.enabled = True
             mock_cache.get.return_value = None
             mock_app.state.cache = mock_cache
+            mock_main.app = mock_app
 
             @cached_response(prefix="test", ttl_seconds=60)
             async def test_func(arg1):
@@ -194,12 +196,14 @@ class TestCachedResponseDecorator:
         """Test async function with cache hit"""
         mock_func = Mock()
 
-        # Mock the app state
-        with patch("services.cache.app") as mock_app:
+        # Mock the main module's app attribute
+        with patch("services.cache.main") as mock_main:
+            mock_app = Mock()
             mock_cache = Mock()
             mock_cache.enabled = True
             mock_cache.get.return_value = "cached_result"
             mock_app.state.cache = mock_cache
+            mock_main.app = mock_app
 
             @cached_response(prefix="test", ttl_seconds=60)
             async def test_func(arg1):
@@ -216,12 +220,14 @@ class TestCachedResponseDecorator:
         """Test sync function caching"""
         mock_func = Mock(return_value="result")
 
-        # Mock the app state
-        with patch("services.cache.app") as mock_app:
+        # Mock the main module's app attribute
+        with patch("services.cache.main") as mock_main:
+            mock_app = Mock()
             mock_cache = Mock()
             mock_cache.enabled = True
             mock_cache.get.return_value = None
             mock_app.state.cache = mock_cache
+            mock_main.app = mock_app
 
             @cached_response(prefix="test", ttl_seconds=60)
             def test_func(arg1):
@@ -238,11 +244,13 @@ class TestCachedResponseDecorator:
         """Test that function executes normally when cache is disabled"""
         mock_func = Mock(return_value="result")
 
-        # Mock the app state with disabled cache
-        with patch("services.cache.app") as mock_app:
+        # Mock the main module's app attribute with disabled cache
+        with patch("services.cache.main") as mock_main:
+            mock_app = Mock()
             mock_cache = Mock()
             mock_cache.enabled = False
             mock_app.state.cache = mock_cache
+            mock_main.app = mock_app
 
             @cached_response(prefix="test", ttl_seconds=60)
             async def test_func(arg1):

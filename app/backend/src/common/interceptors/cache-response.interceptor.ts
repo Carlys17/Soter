@@ -51,17 +51,20 @@ export class CacheResponseInterceptor implements NestInterceptor {
 
         // Cache miss: execute handler and cache the result
         return next.handle().pipe(
-          tap(async (response) => {
-            try {
-              await this.redisService.set(cacheKey, response, options.ttl);
-              this.logger.debug(
-                `Cached response for key: ${cacheKey} (TTL: ${options.ttl}s)`,
-              );
-            } catch (err) {
-              this.logger.warn(
-                `Failed to cache response for key ${cacheKey}: ${String(err)}`,
-              );
-            }
+          tap((response) => {
+            // Fire-and-forget cache set (don't await in tap)
+            void this.redisService
+              .set(cacheKey, response, options.ttl)
+              .then(() => {
+                this.logger.debug(
+                  `Cached response for key: ${cacheKey} (TTL: ${options.ttl}s)`,
+                );
+              })
+              .catch((err) => {
+                this.logger.warn(
+                  `Failed to cache response for key ${cacheKey}: ${String(err)}`,
+                );
+              });
           }),
         );
       }),
