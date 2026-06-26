@@ -145,16 +145,35 @@ const toErrorMessage = (error: unknown) => {
 const isRetryableError = (error: unknown) => {
   const message = toErrorMessage(error).toLowerCase();
 
-  return (
-    message.includes('network') ||
-    message.includes('timeout') ||
-    message.includes('failed to fetch') ||
-    message.includes('request failed') ||
-    message.includes('503') ||
-    message.includes('502') ||
-    message.includes('500') ||
-    message.includes('429')
-  );
+  const permanentFailurePatterns = [
+    '400',
+    '401',
+    '403',
+    '404',
+    'bad request',
+    'unauthorized',
+    'forbidden',
+    'not found',
+    'already claimed',
+    'validation',
+  ];
+
+  if (permanentFailurePatterns.some((pattern) => message.includes(pattern))) {
+    return false;
+  }
+
+  const retryableFailurePatterns = [
+    'network',
+    'timeout',
+    'failed to fetch',
+    'request failed',
+    '429',
+    '500',
+    '502',
+    '503',
+  ];
+
+  return retryableFailurePatterns.some((pattern) => message.includes(pattern));
 };
 
 const hydrateQueue = async () => {
