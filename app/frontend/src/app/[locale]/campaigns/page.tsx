@@ -301,8 +301,6 @@ export default function CampaignsPage() {
                             onClick={() => onPauseResume(campaign.id, campaign.name, campaign.status)}
                             disabled={campaignAction.isPending || isMismatch}
                             title={isMismatch ? `Wrong network — switch to ${expectedNetwork.toUpperCase()} in Freighter` : undefined}
-                            className="rounded-md border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
-                            disabled={campaignAction.isPending}
                             className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                           >
                             {campaign.status === 'active' ? 'Pause' : 'Resume'}
@@ -312,8 +310,6 @@ export default function CampaignsPage() {
                             onClick={() => onArchive(campaign.id, campaign.name)}
                             disabled={campaignAction.isPending || isMismatch || campaign.status === 'archived'}
                             title={isMismatch ? `Wrong network — switch to ${expectedNetwork.toUpperCase()} in Freighter` : undefined}
-                            className="rounded-md border border-red-400 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            disabled={campaignAction.isPending || campaign.status === 'archived'}
                             className="rounded-md border border-red-400 px-3 py-1 text-sm text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
                           >
                             Archive
