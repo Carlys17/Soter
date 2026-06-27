@@ -6,10 +6,14 @@ import { AlertTriangle, CheckCircle2, ChevronLeft, Download, FileSpreadsheet, Re
 import { useToast } from '@/components/ToastProvider';
 import {
   buildValidationReport,
+  capValidationErrors,
   confirmRecipientsImport,
   parseRecipientsCsv,
-  type ParsedCsvData,
+  validateHeaders,
   validateRecipientsImport,
+  type HeaderValidationResult,
+  type ImportProgress,
+  type ParsedCsvData,
   type ValidationResult,
   type WizardStep,
 } from '@/lib/csv-validation';
@@ -43,29 +47,34 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [headerValidation, setHeaderValidation] = useState<HeaderValidationResult | null>(null);
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [liveMessage, setLiveMessage] = useState('');
+  const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const liveRegionRef = useRef<HTMLDivElement | null>(null);
 
-  /** Focus target for each step — set on the heading of the active step panel. */
-  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
-  /** Polite live region for step transitions and CSV feedback. */
-  const liveRegionRef = useRef<HTMLDivElement>(null);
+  function announce(message: string) {
+    setLiveMessage(message);
+  }
 
-  /** Move focus to the step heading whenever the active step changes. */
   useEffect(() => {
-    stepHeadingRef.current?.focus();
+    if (liveMessage && liveRegionRef.current) {
+      liveRegionRef.current.textContent = liveMessage;
+    }
+  }, [liveMessage]);
+
+  useEffect(() => {
+    if (stepHeadingRef.current) {
+      stepHeadingRef.current.focus();
+    }
   }, [step]);
 
   const summary = validationResult?.summary;
   const canAdvanceToPreview = Boolean(file && parsedData && !fileError);
-  const canAdvanceToValidation = Boolean(parsedData?.rows.length);
+  const canAdvanceToValidation = Boolean(parsedData?.rows.length && headerValidation?.valid !== false);
   const canAdvanceToConfirm = Boolean(validationResult);
   const hasBlockingErrors = Boolean(summary && summary.errorRows > 0);
   const previewRows = useMemo(() => parsedData?.rows.slice(0, 12) ?? [], [parsedData]);
-
-  /** Update the polite live region for screen-reader announcements. */
-  const announce = (message: string) => {
-    setLiveMessage(message);
-  };
 
   async function handleFileSelected(nextFile: File | null) {
     setFile(nextFile);
@@ -74,6 +83,8 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
     setFileError(null);
     setSubmitMessage(null);
     setSubmitError(null);
+    setHeaderValidation(null);
+    setImportProgress(null);
 
     if (!nextFile) {
       return;
@@ -86,16 +97,33 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
 
     setIsParsing(true);
     try {
-      const data = await parseRecipientsCsv(nextFile);
+      const data = await parseRecipientsCsv(nextFile, (progress) => {
+        setImportProgress(progress);
+      });
       setParsedData(data);
-      toast('CSV ready', `Loaded ${data.rows.length} recipient rows for review.`, 'success');
-      announce(`CSV ready, ${data.rows.length} rows loaded.`);
+
+      const headerResult = validateHeaders(data.headers);
+      setHeaderValidation(headerResult);
+
+      if (!headerResult.valid) {
+        const missingCols = headerResult.errors.map(e => e.expectedKey).join(', ');
+        toast(
+          'Missing columns',
+          `Required columns not found: ${missingCols}. Check the CSV headers.`,
+          'warning',
+        );
+        announce(`Warning: Required columns not found: ${missingCols}. Check the CSV headers.`);
+      } else {
+        toast('CSV ready', `Loaded ${data.rows.length} recipient rows for review.`, 'success');
+        announce(`CSV ready. Loaded ${data.rows.length} recipient rows for review.`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to parse the selected CSV file.';
       setFileError(message);
       toast('Upload problem', message, 'error');
     } finally {
       setIsParsing(false);
+      setImportProgress(null);
     }
   }
 
@@ -107,9 +135,12 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
     setIsValidating(true);
     setSubmitMessage(null);
     setSubmitError(null);
+    setImportProgress(null);
 
     try {
-      const result = await validateRecipientsImport(campaignId, file, parsedData.rows);
+      const result = await validateRecipientsImport(campaignId, file, parsedData.rows, (progress) => {
+        setImportProgress(progress);
+      });
       setValidationResult(result);
       setStep(3);
 
@@ -126,6 +157,7 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
       toast('Validation failed', message, 'error');
     } finally {
       setIsValidating(false);
+      setImportProgress(null);
     }
   }
 
@@ -173,6 +205,8 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
     setParsedData(null);
     setValidationResult(null);
     setFileError(null);
+    setHeaderValidation(null);
+    setImportProgress(null);
     setIsParsing(false);
     setIsValidating(false);
     setIsSubmitting(false);
@@ -181,8 +215,19 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
     announce('Started over. Step 1: Upload recipient file.');
   }
 
+  const cappedResult = useMemo(() => {
+    if (!validationResult) return null;
+    return capValidationErrors(validationResult);
+  }, [validationResult]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-white to-slate-50 px-4 py-8 dark:via-slate-950 dark:to-slate-950">
+      <div
+        ref={liveRegionRef}
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      />
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
@@ -194,7 +239,13 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
               Back to campaigns
             </Link>
             <div className="space-y-1">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">Import recipients</h1>
+              <h1
+                ref={stepHeadingRef}
+                tabIndex={-1}
+                className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50"
+              >
+                Import recipients
+              </h1>
               <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
                 Upload a recipient list, inspect the parsed rows, clear validation issues, and confirm the final import for campaign <span className="font-medium text-slate-900 dark:text-slate-100">{campaignId}</span>.
               </p>
@@ -230,10 +281,14 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
                 file={file}
                 fileError={fileError}
                 isParsing={isParsing}
-                onFileSelected={handleFileSelected}
-                onNext={() => { setStep(2); announce('Step 2: Preview recipient data'); }}
+                parseProgress={importProgress?.phase === 'parsing' ? importProgress : null}
                 canProceed={canAdvanceToPreview}
                 headingRef={stepHeadingRef}
+                onFileSelected={handleFileSelected}
+                onNext={() => {
+                  setStep(2);
+                  announce('Step 2: Preview recipient data');
+                }}
               />
             )}
 
@@ -243,24 +298,41 @@ export function ImportRecipientsWizard({ campaignId }: ImportRecipientsWizardPro
                 headers={parsedData.headers}
                 previewRows={previewRows}
                 totalRows={parsedData.rows.length}
-                onBack={() => { setStep(1); announce('Step 1: Upload recipient file'); }}
-                onNext={handleRunValidation}
+                headerValidation={headerValidation}
                 isValidating={isValidating}
+                validateProgress={importProgress?.phase === 'validating' ? importProgress : null}
                 canProceed={canAdvanceToValidation}
                 headingRef={stepHeadingRef}
+                onBack={() => {
+                  setStep(1);
+                  announce('Step 1: Upload recipient file');
+                }}
+                onNext={() => {
+                  handleRunValidation();
+                  announce('Running validation on parsed rows');
+                }}
               />
             )}
 
-            {step === 3 && parsedData && validationResult && (
+            {step === 3 && parsedData && cappedResult && (
               <Step3Validation
-                result={validationResult}
+                result={cappedResult.display}
+                originalResult={validationResult!}
                 headers={parsedData.headers}
-                onBack={() => { setStep(2); announce('Step 2: Preview recipient data'); }}
-                onNext={() => { setStep(4); announce('Step 4: Confirm import'); }}
-                onDownloadReport={handleDownloadReport}
+                remainingErrors={cappedResult.remainingErrors}
+                remainingWarnings={cappedResult.remainingWarnings}
                 isValidating={isValidating}
                 canProceed={canAdvanceToConfirm}
                 headingRef={stepHeadingRef}
+                onBack={() => {
+                  setStep(2);
+                  announce('Step 2: Preview recipient data');
+                }}
+                onNext={() => {
+                  setStep(4);
+                  announce('Step 4: Confirm import');
+                }}
+                onDownloadReport={handleDownloadReport}
               />
             )}
 
