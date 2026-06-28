@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../cache/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DeploymentMetadataResponseDto } from './dto/deployment-metadata.dto';
-import { Prisma } from '@prisma/client';
 
 /**
  * TTL for cached contract ID / config snapshots (5 minutes).

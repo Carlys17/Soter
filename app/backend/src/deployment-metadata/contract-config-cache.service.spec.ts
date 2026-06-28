@@ -5,8 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 
 describe('ContractConfigCacheService', () => {
   let service: ContractConfigCacheService;
-  let redis: jest.Mocked<RedisService>;
-  let prisma: jest.Mocked<PrismaService>;
+  let _redis: jest.Mocked<RedisService>;
+  let _prisma: jest.Mocked<PrismaService>;
 
   const record = {
     id: 'id-1',
@@ -50,8 +50,8 @@ describe('ContractConfigCacheService', () => {
     service = module.get<ContractConfigCacheService>(
       ContractConfigCacheService,
     );
-    redis = module.get(RedisService);
-    prisma = module.get(PrismaService);
+    _redis = module.get(RedisService);
+    _prisma = module.get(PrismaService);
 
     jest.clearAllMocks();
     // Redis set/del always succeeds by default

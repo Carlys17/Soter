@@ -5,8 +5,8 @@ import { ContractConfigCacheService } from './contract-config-cache.service';
 
 describe('DeploymentMetadataService', () => {
   let service: DeploymentMetadataService;
-  let prisma: jest.Mocked<PrismaService>;
-  let cache: jest.Mocked<ContractConfigCacheService>;
+  let _prisma: jest.Mocked<PrismaService>;
+  let _cache: jest.Mocked<ContractConfigCacheService>;
 
   const mockRecord = {
     id: 'test-id-1',
@@ -55,8 +55,8 @@ describe('DeploymentMetadataService', () => {
     }).compile();
 
     service = module.get<DeploymentMetadataService>(DeploymentMetadataService);
-    prisma = module.get(PrismaService);
-    cache = module.get(ContractConfigCacheService);
+    _prisma = module.get(PrismaService);
+    _cache = module.get(ContractConfigCacheService);
 
     jest.clearAllMocks();
     // Default: invalidateAll and refreshAll resolve cleanly
