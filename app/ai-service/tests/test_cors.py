@@ -19,6 +19,14 @@ try:
 except ImportError:
     pytest.skip("Cannot import config module", allow_module_level=True)
 
+# Import TestClient for middleware tests (only used if app can be imported)
+TestClient = None
+try:
+    from fastapi.testclient import TestClient as _TestClient
+    TestClient = _TestClient
+except ImportError:
+    pass
+
 
 class TestCORSConfiguration:
     """Test CORS configuration methods."""
@@ -41,6 +49,7 @@ class TestCORSConfiguration:
         """Test that production environment uses configured origins."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://example.com,https://app.example.com",
             cors_allow_vercel_previews=True,
             cors_custom_origins="https://custom.example.org",
@@ -57,6 +66,7 @@ class TestCORSConfiguration:
         """Test that Vercel previews can be disabled."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://example.com",
             cors_allow_vercel_previews=False,
             cors_custom_origins="",
@@ -69,6 +79,7 @@ class TestCORSConfiguration:
         """Test behavior with empty configuration."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="",
             cors_allow_vercel_previews=False,
             cors_custom_origins="",
@@ -80,6 +91,7 @@ class TestCORSConfiguration:
         """Test exact origin matching."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://example.com",
             cors_allow_vercel_previews=False,
             cors_custom_origins="",
@@ -91,6 +103,7 @@ class TestCORSConfiguration:
         """Test Vercel preview wildcard pattern matching."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="",
             cors_allow_vercel_previews=True,
             cors_custom_origins="",
@@ -125,6 +138,7 @@ class TestCORSConfiguration:
         """Test localhost is NOT allowed in production."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://example.com",
             cors_allow_vercel_previews=False,
             cors_custom_origins="",
@@ -138,6 +152,8 @@ class TestCORSMiddleware:
     @pytest.fixture
     def client(self):
         """Create a test client with CORS middleware."""
+        if TestClient is None:
+            pytest.skip("TestClient not available - fastapi not installed")
         try:
             from main import app
             return TestClient(app)
@@ -207,6 +223,8 @@ class TestSensitiveEndpointCORSProtection:
     @pytest.fixture
     def client(self):
         """Create a test client with CORS middleware."""
+        if TestClient is None:
+            pytest.skip("TestClient not available - fastapi not installed")
         try:
             from main import app
             return TestClient(app)
@@ -263,6 +281,7 @@ class TestVercelPreviewSupport:
         """Test that Vercel preview URLs match wildcard pattern."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="",
             cors_allow_vercel_previews=True,
             cors_custom_origins="",
@@ -282,6 +301,7 @@ class TestVercelPreviewSupport:
         """Test that Vercel previews can be disabled."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://example.com",
             cors_allow_vercel_previews=False,
             cors_custom_origins="",
@@ -298,6 +318,7 @@ class TestProductionOriginAllowlist:
         """Test that multiple production origins are supported."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://app.example.com,https://admin.example.com,https://api.example.com",
             cors_allow_vercel_previews=False,
             cors_custom_origins="",
@@ -312,6 +333,7 @@ class TestProductionOriginAllowlist:
         """Test that custom origins are supported."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://example.com",
             cors_allow_vercel_previews=False,
             cors_custom_origins="https://staging.example.com,https://partner.example.org",
@@ -326,6 +348,7 @@ class TestProductionOriginAllowlist:
         """Test that whitespace in origin lists is handled correctly."""
         settings = Settings(
             app_env="production",
+            test_provider_mode=True,
             cors_allowed_origins="https://example.com , https://app.example.com , https://admin.example.com",
             cors_allow_vercel_previews=False,
             cors_custom_origins="",
