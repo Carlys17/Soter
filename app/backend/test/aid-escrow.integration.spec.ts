@@ -426,7 +426,10 @@ describe('AidEscrow Integration Tests', () => {
       const req = createMockRequest(
         'GOPER8TORADDRESS00000000000000000000000000000000000000',
       );
-      const result = await controller.dryRunAidPackageIssuance(dto, req as Request);
+      const result = await controller.dryRunAidPackageIssuance(
+        dto,
+        req as Request,
+      );
 
       expect(result).toBeDefined();
       expect(result.status).toBe('dry_run');
@@ -449,7 +452,10 @@ describe('AidEscrow Integration Tests', () => {
       const req = createMockRequest(
         'GOPER8TORADDRESS00000000000000000000000000000000000000',
       );
-      const result = await controller.batchCreateAidPackages(dto, req as Request);
+      const result = await controller.batchCreateAidPackages(
+        dto,
+        req as Request,
+      );
 
       expect(result).toBeDefined();
       expect(result.packageIds).toHaveLength(2);
@@ -460,7 +466,10 @@ describe('AidEscrow Integration Tests', () => {
       const req = createMockRequest(
         'GBUQWP3BOUZX34ULNQG23RQ6F4BFXWBTRSE53XSTE23JMCVOCJGXVSVZ',
       );
-      const result = await controller.claimAidPackage('pkg-001', req as Request);
+      const result = await controller.claimAidPackage(
+        'pkg-001',
+        req as Request,
+      );
 
       expect(result).toBeDefined();
       expect(result.packageId).toBe('pkg-001');

@@ -36,7 +36,8 @@ export class ErrorResponseDto {
   path?: string;
 
   @ApiPropertyOptional({
-    description: 'Additional error details (validation errors, stack traces, etc.)',
+    description:
+      'Additional error details (validation errors, stack traces, etc.)',
     example: { field: 'email', errors: ['must be a valid email'] },
   })
   details?: Record<string, any>;

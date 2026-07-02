@@ -11,10 +11,6 @@ import { OutboundCorrelationInterceptor } from '../interceptors/outbound-correla
     },
     OutboundCorrelationInterceptor,
   ],
-  exports: [
-    CorrelationPropagationUtil,
-    OutboundCorrelationInterceptor,
-  ],
+  exports: [CorrelationPropagationUtil, OutboundCorrelationInterceptor],
 })
 export class CorrelationModule {}
-

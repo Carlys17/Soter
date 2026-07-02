@@ -9,7 +9,11 @@ import {
 import { Request, Response } from 'express';
 import { ValidationError } from 'class-validator';
 import { LoggerService } from '../../logger/logger.service';
-import { ErrorResponseDto, ERROR_CODES, getErrorCodeFromStatus } from '../dto/error-response.dto';
+import {
+  ErrorResponseDto,
+  ERROR_CODES,
+  getErrorCodeFromStatus,
+} from '../dto/error-response.dto';
 
 export interface ErrorResponse {
   code: number;
@@ -46,16 +50,36 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let errorResponse: ErrorResponse;
 
     if (exception instanceof HttpException) {
-      errorResponse = this.handleHttpException(exception, request, traceId, correlationId);
+      errorResponse = this.handleHttpException(
+        exception,
+        request,
+        traceId,
+        correlationId,
+      );
     } else if (this.isPrismaError(exception)) {
-      errorResponse = this.handlePrismaError(exception, request, traceId, correlationId);
+      errorResponse = this.handlePrismaError(
+        exception,
+        request,
+        traceId,
+        correlationId,
+      );
     } else if (
       Array.isArray(exception) &&
       exception.some(e => e instanceof ValidationError)
     ) {
-      errorResponse = this.handleValidationErrors(exception, request, traceId, correlationId);
+      errorResponse = this.handleValidationErrors(
+        exception,
+        request,
+        traceId,
+        correlationId,
+      );
     } else {
-      errorResponse = this.handleGenericError(exception, request, traceId, correlationId);
+      errorResponse = this.handleGenericError(
+        exception,
+        request,
+        traceId,
+        correlationId,
+      );
     }
 
     // Ensure response uses standardized error envelope
@@ -66,7 +90,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: errorResponse.timestamp || new Date().toISOString(),
       path: errorResponse.path || request.url,
       details: errorResponse.details,
-      errorCode: errorResponse.errorCode || getErrorCodeFromStatus(errorResponse.code),
+      errorCode:
+        errorResponse.errorCode || getErrorCodeFromStatus(errorResponse.code),
       correlationId: errorResponse.correlationId,
     };
 

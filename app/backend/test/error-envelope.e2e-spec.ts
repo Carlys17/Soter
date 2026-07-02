@@ -7,7 +7,8 @@ import { ErrorResponseDto } from '../src/common/dto/error-response.dto';
 
 describe('Error Envelope (E2E)', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
+  // _prisma is intentionally unused - kept for potential future use
+  let _prisma: PrismaService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,7 +25,7 @@ describe('Error Envelope (E2E)', () => {
     );
 
     await app.init();
-    prisma = app.get(PrismaService);
+    _prisma = app.get(PrismaService);
   });
 
   afterAll(async () => {
@@ -121,11 +122,13 @@ describe('Error Envelope (E2E)', () => {
 
     it('should return standard error envelope for 429 Rate Limit', async () => {
       // Send multiple requests to trigger rate limit
-      const requests = Array(10).fill(null).map(() => 
-        request(app.getHttpServer())
-          .get('/api/v1/health')
-          .set('x-api-key', 'test-key')
-      );
+      const requests = Array(10)
+        .fill(null)
+        .map(() =>
+          request(app.getHttpServer())
+            .get('/api/v1/health')
+            .set('x-api-key', 'test-key'),
+        );
 
       // Find the first 429 response
       for (const req of requests) {
@@ -144,15 +147,29 @@ describe('Error Envelope (E2E)', () => {
   describe('Error Envelope Consistency', () => {
     it('should have consistent error envelope across all endpoints', async () => {
       const errorEndpoints = [
-        { url: '/api/v1/claims/invalid-id', method: 'GET', expectedStatus: 404 },
-        { url: '/api/v1/campaigns/invalid', method: 'GET', expectedStatus: 404 },
-        { url: '/api/v1/verification/invalid', method: 'GET', expectedStatus: 404 },
+        {
+          url: '/api/v1/claims/invalid-id',
+          method: 'GET',
+          expectedStatus: 404,
+        },
+        {
+          url: '/api/v1/campaigns/invalid',
+          method: 'GET',
+          expectedStatus: 404,
+        },
+        {
+          url: '/api/v1/verification/invalid',
+          method: 'GET',
+          expectedStatus: 404,
+        },
         { url: '/api/v1/session/invalid', method: 'GET', expectedStatus: 404 },
       ];
 
       for (const { url, method, expectedStatus } of errorEndpoints) {
         const response = await request(app.getHttpServer())
-          [method.toLowerCase()](url)
+          [
+            method.toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch'
+          ](url)
           .expect(expectedStatus);
 
         const body = response.body as ErrorResponseDto;
@@ -205,7 +222,6 @@ describe('Error Envelope (E2E)', () => {
         .expect(401);
       expect(unauthRes.body.errorCode).toBe('UNAUTHORIZED');
 
-      // Test 403 - Forbidden (if we have a test endpoint)
       // Test 400 - Bad Request
       const badReqRes = await request(app.getHttpServer())
         .post('/api/v1/claims')

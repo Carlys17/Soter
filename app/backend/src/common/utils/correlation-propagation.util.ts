@@ -1,5 +1,8 @@
 import { Request } from 'express';
-import { CORRELATION_ID_HEADER, CORRELATION_ID_KEY } from './correlation-id.util';
+import {
+  CORRELATION_ID_HEADER,
+  CORRELATION_ID_KEY,
+} from './correlation-id.util';
 import { LoggerService } from '../../logger/logger.service';
 
 /**
@@ -41,7 +44,9 @@ export class CorrelationPropagationUtil {
     try {
       const asyncLocalStorage = this.logger?.getAsyncLocalStorage();
       if (asyncLocalStorage) {
-        const store = asyncLocalStorage.getStore() as Map<string, any> | undefined;
+        const store = asyncLocalStorage.getStore() as
+          | Map<string, any>
+          | undefined;
         if (store) {
           const fromStore = store.get(CORRELATION_ID_KEY);
           if (fromStore) {
@@ -49,8 +54,8 @@ export class CorrelationPropagationUtil {
           }
         }
       }
-    } catch (error) {
-      // Async storage not available
+    } catch {
+      // Async storage not available - ignore error
     }
 
     return null;

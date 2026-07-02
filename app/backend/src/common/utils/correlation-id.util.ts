@@ -36,7 +36,9 @@ export function extractCorrelationId(req: Request): string | null {
 /**
  * Get correlation headers for outbound requests
  */
-export function getCorrelationHeaders(correlationId: string | null): Record<string, string> {
+export function getCorrelationHeaders(
+  correlationId: string | null,
+): Record<string, string> {
   if (!correlationId) {
     return {};
   }

@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebhooksService } from './webhooks.service';
-import { SessionService } from './session/session.service'; 
-import { PrismaService } from './prisma/prisma.service'; 
+import { SessionService } from './session/session.service';
+import { PrismaService } from './prisma/prisma.service';
 import {
   AiVerificationPayloadDto,
   VerificationStatus,
-} from './ai-verification.dto'; 
+} from './ai-verification.dto';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 
 jest.mock('@prisma/client', () => {
@@ -36,7 +36,8 @@ type MockPrismaService = {
 
 describe('WebhooksService', () => {
   let service: WebhooksService;
-  let prisma: PrismaService;
+  // _prisma is intentionally unused - kept for potential future use
+  let _prisma: PrismaService;
   let sessionService: SessionService;
 
   // Use type assertion for the mock
@@ -66,13 +67,16 @@ describe('WebhooksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhooksService,
-        { provide: PrismaService, useValue: mockPrisma as unknown as PrismaService },
+        {
+          provide: PrismaService,
+          useValue: mockPrisma as unknown as PrismaService,
+        },
         { provide: SessionService, useValue: mockSessionServiceObj },
       ],
     }).compile();
 
     service = module.get<WebhooksService>(WebhooksService);
-    prisma = module.get<PrismaService>(PrismaService);
+    _prisma = module.get<PrismaService>(PrismaService);
     sessionService = module.get<SessionService>(SessionService);
 
     jest.clearAllMocks();
@@ -85,7 +89,9 @@ describe('WebhooksService', () => {
   describe('processAiVerification', () => {
     it('should throw ConflictException if event is already processed', async () => {
       // Use type assertion to access the mocked property
-      (mockPrisma.webhookEvent.findUnique as jest.Mock).mockResolvedValue({ id: '1' });
+      mockPrisma.webhookEvent.findUnique.mockResolvedValue({
+        id: '1',
+      });
 
       await expect(service.processAiVerification(payload)).rejects.toThrow(
         ConflictException,
@@ -93,7 +99,7 @@ describe('WebhooksService', () => {
     });
 
     it('should throw NotFoundException if session is not found or not active', async () => {
-      (mockPrisma.webhookEvent.findUnique as jest.Mock).mockResolvedValue(null);
+      mockPrisma.webhookEvent.findUnique.mockResolvedValue(null);
       mockSessionServiceObj.getSession.mockResolvedValue(null);
 
       await expect(service.processAiVerification(payload)).rejects.toThrow(
@@ -102,7 +108,7 @@ describe('WebhooksService', () => {
     });
 
     it('should throw NotFoundException if a suitable step is not found', async () => {
-      (mockPrisma.webhookEvent.findUnique as jest.Mock).mockResolvedValue(null);
+      mockPrisma.webhookEvent.findUnique.mockResolvedValue(null);
       mockSessionServiceObj.getSession.mockResolvedValue({
         id: 'sess_456',
         status: 'pending',
@@ -116,7 +122,7 @@ describe('WebhooksService', () => {
 
     it('should process the webhook successfully', async () => {
       const stepId = 'step_789';
-      (mockPrisma.webhookEvent.findUnique as jest.Mock).mockResolvedValue(null);
+      mockPrisma.webhookEvent.findUnique.mockResolvedValue(null);
       mockSessionServiceObj.getSession.mockResolvedValue({
         id: 'sess_456',
         status: 'pending',
@@ -132,7 +138,7 @@ describe('WebhooksService', () => {
       const result = await service.processAiVerification(payload);
 
       // Use type assertion for the expectation
-      expect((mockPrisma.webhookEvent.create as jest.Mock)).toHaveBeenCalled();
+      expect(mockPrisma.webhookEvent.create).toHaveBeenCalled();
       expect(sessionService.submitToStep).toHaveBeenCalledWith(
         payload.sessionId,
         stepId,

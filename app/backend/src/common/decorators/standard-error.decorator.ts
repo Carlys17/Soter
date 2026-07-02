@@ -1,4 +1,4 @@
-import { SetMetadata, applyDecorators, UseInterceptors } from '@nestjs/common';
+import { SetMetadata, applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { ErrorResponseDto } from '../dto/error-response.dto';
 
@@ -7,18 +7,17 @@ import { ErrorResponseDto } from '../dto/error-response.dto';
  * Also documents the possible error responses in Swagger
  */
 export function StandardErrorResponses(...statusCodes: number[]) {
-  const decorators = [];
+  const decorators: (MethodDecorator | ClassDecorator)[] = [];
 
   // Add standard error responses
   const defaultErrors = [400, 401, 403, 404, 409, 422, 429, 500];
-
   const errorCodes = statusCodes.length > 0 ? statusCodes : defaultErrors;
 
   for (const code of errorCodes) {
-    (decorators as unknown[]).push(
+    decorators.push(
       ApiResponse({
         status: code,
-        description: this.getErrorDescription(code),
+        description: getErrorDescription(code),
         type: ErrorResponseDto,
       }),
     );
@@ -27,6 +26,9 @@ export function StandardErrorResponses(...statusCodes: number[]) {
   return applyDecorators(...decorators);
 }
 
+/**
+ * Get error description for HTTP status code
+ */
 function getErrorDescription(code: number): string {
   const descriptions: Record<number, string> = {
     400: 'Bad Request - Invalid input parameters',
@@ -50,7 +52,5 @@ export const STANDARD_ERROR_KEY = 'standardError';
  * Decorator to mark a controller for standard error handling
  */
 export function UseStandardErrorHandling(): MethodDecorator & ClassDecorator {
-  return applyDecorators(
-    SetMetadata(STANDARD_ERROR_KEY, true),
-  );
+  return applyDecorators(SetMetadata(STANDARD_ERROR_KEY, true));
 }

@@ -40,7 +40,11 @@ export class ApiResponseDto<T> {
   })
   timestamp?: string;
 
-  static ok<T>(data: T, message?: string, correlationId?: string): ApiResponseDto<T> {
+  static ok<T>(
+    data: T,
+    message?: string,
+    correlationId?: string,
+  ): ApiResponseDto<T> {
     return {
       success: true,
       message,
@@ -88,7 +92,10 @@ export class ApiResponseDto<T> {
     };
   }
 
-  static notFound(entity: string, correlationId?: string): ApiResponseDto<null> {
+  static notFound(
+    entity: string,
+    correlationId?: string,
+  ): ApiResponseDto<null> {
     return {
       success: false,
       message: `${entity} not found`,
@@ -102,7 +109,10 @@ export class ApiResponseDto<T> {
     };
   }
 
-  static unauthorized(message?: string, correlationId?: string): ApiResponseDto<null> {
+  static unauthorized(
+    message?: string,
+    correlationId?: string,
+  ): ApiResponseDto<null> {
     return {
       success: false,
       message: message || 'Unauthorized',
@@ -116,7 +126,10 @@ export class ApiResponseDto<T> {
     };
   }
 
-  static forbidden(message?: string, correlationId?: string): ApiResponseDto<null> {
+  static forbidden(
+    message?: string,
+    correlationId?: string,
+  ): ApiResponseDto<null> {
     return {
       success: false,
       message: message || 'Forbidden',
@@ -130,7 +143,11 @@ export class ApiResponseDto<T> {
     };
   }
 
-  static conflict(message: string, details?: Record<string, any>, correlationId?: string): ApiResponseDto<null> {
+  static conflict(
+    message: string,
+    details?: Record<string, any>,
+    correlationId?: string,
+  ): ApiResponseDto<null> {
     return {
       success: false,
       message,
@@ -145,7 +162,11 @@ export class ApiResponseDto<T> {
     };
   }
 
-  static badRequest(message: string, details?: Record<string, any>, correlationId?: string): ApiResponseDto<null> {
+  static badRequest(
+    message: string,
+    details?: Record<string, any>,
+    correlationId?: string,
+  ): ApiResponseDto<null> {
     return {
       success: false,
       message,

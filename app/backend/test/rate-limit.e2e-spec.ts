@@ -47,9 +47,7 @@ describe('Rate Limit Guard (E2E)', () => {
 
       // Send requests up to the limit
       for (let i = 0; i < limit; i++) {
-        await request(app.getHttpServer())
-          .get(endpoint)
-          .expect(200);
+        await request(app.getHttpServer()).get(endpoint).expect(200);
       }
 
       // The 11th request should be rate limited
@@ -60,7 +58,10 @@ describe('Rate Limit Guard (E2E)', () => {
       expect(response.body).toHaveProperty('code', 429);
       expect(response.body).toHaveProperty('errorCode', 'RATE_LIMIT_EXCEEDED');
       expect(response.body).toHaveProperty('message');
-      expect(response.headers).toHaveProperty('x-ratelimit-limit', String(limit));
+      expect(response.headers).toHaveProperty(
+        'x-ratelimit-limit',
+        String(limit),
+      );
       expect(response.headers).toHaveProperty('x-ratelimit-remaining', '0');
     });
 
@@ -70,9 +71,7 @@ describe('Rate Limit Guard (E2E)', () => {
 
       // Public endpoint should have limit 10
       for (let i = 0; i < 10; i++) {
-        await request(app.getHttpServer())
-          .get(publicEndpoint)
-          .expect(200);
+        await request(app.getHttpServer()).get(publicEndpoint).expect(200);
       }
 
       const publicResponse = await request(app.getHttpServer())
@@ -138,7 +137,9 @@ describe('Rate Limit Guard (E2E)', () => {
       expect(response.headers).toHaveProperty('x-ratelimit-limit');
       expect(response.headers).toHaveProperty('x-ratelimit-remaining');
       expect(response.headers).toHaveProperty('x-ratelimit-policy');
-      expect(parseInt(response.headers['x-ratelimit-remaining'])).toBeGreaterThanOrEqual(0);
+      expect(
+        parseInt(response.headers['x-ratelimit-remaining']),
+      ).toBeGreaterThanOrEqual(0);
     });
 
     it('should use IP-based rate limiting for public requests', async () => {
@@ -179,9 +180,7 @@ describe('Rate Limit Guard (E2E)', () => {
 
       // Should be able to make 20 requests
       for (let i = 0; i < publicLimit; i++) {
-        await request(app.getHttpServer())
-          .get(endpoint)
-          .expect(200);
+        await request(app.getHttpServer()).get(endpoint).expect(200);
       }
 
       // The 21st request should be rate limited
@@ -211,9 +210,7 @@ describe('Rate Limit Guard (E2E)', () => {
 
       // Exhaust the rate limit
       for (let i = 0; i < limit; i++) {
-        await request(app.getHttpServer())
-          .get(endpoint)
-          .expect(200);
+        await request(app.getHttpServer()).get(endpoint).expect(200);
       }
 
       const response = await request(app.getHttpServer())
@@ -238,19 +235,16 @@ describe('Rate Limit Guard (E2E)', () => {
     it('should reset rate limit after window expires', async () => {
       const endpoint = '/health';
       const limit = 10;
-      const window = 60; // 60 seconds
+      // window is intentionally unused - kept for clarity/documentation
+      const _window = 60; // 60 seconds
 
       // Exhaust the rate limit
       for (let i = 0; i < limit; i++) {
-        await request(app.getHttpServer())
-          .get(endpoint)
-          .expect(200);
+        await request(app.getHttpServer()).get(endpoint).expect(200);
       }
 
       // The 11th request should be rate limited
-      await request(app.getHttpServer())
-        .get(endpoint)
-        .expect(429);
+      await request(app.getHttpServer()).get(endpoint).expect(429);
 
       // Wait for rate limit window to reset (use shorter window for test)
       // In a real test, you'd mock time or use a shorter window
@@ -267,9 +261,7 @@ describe('Rate Limit Guard (E2E)', () => {
       const client = redisService.getOrThrow();
 
       // Make a request to create rate limit entry
-      await request(app.getHttpServer())
-        .get(endpoint)
-        .expect(200);
+      await request(app.getHttpServer()).get(endpoint).expect(200);
 
       // Find the rate limit key
       const keys = await client.keys('ratelimit:*');

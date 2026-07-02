@@ -1,4 +1,8 @@
-import { Injectable, LoggerService as NestLoggerService, Scope } from '@nestjs/common';
+import {
+  Injectable,
+  LoggerService as NestLoggerService,
+  Scope,
+} from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
 import { CORRELATION_ID_KEY } from '../../common/utils/correlation-id.util';
 
@@ -60,7 +64,12 @@ export class LoggerService implements NestLoggerService {
     console.log(this.formatMessage(message, context, metadata));
   }
 
-  error(message: string, trace?: string, context?: string, metadata?: Record<string, any>): void {
+  error(
+    message: string,
+    trace?: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     const formatted = this.formatMessage(message, context, metadata);
     if (trace) {
       console.error(`${formatted}\n${trace}`);
@@ -69,15 +78,27 @@ export class LoggerService implements NestLoggerService {
     }
   }
 
-  warn(message: string, context?: string, metadata?: Record<string, any>): void {
+  warn(
+    message: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     console.warn(this.formatMessage(message, context, metadata));
   }
 
-  debug(message: string, context?: string, metadata?: Record<string, any>): void {
+  debug(
+    message: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     console.debug(this.formatMessage(message, context, metadata));
   }
 
-  verbose(message: string, context?: string, metadata?: Record<string, any>): void {
+  verbose(
+    message: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     console.log(this.formatMessage(message, context, metadata));
   }
 }

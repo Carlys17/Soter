@@ -10,7 +10,10 @@ import { ConfigType } from '@nestjs/config';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import { Request } from 'express';
 import rateLimitConfig from '../../config/rate-limit.config';
-import { RateLimitPolicy, getRateLimitPolicy } from '../../config/rate-limit.config';
+import {
+  RateLimitPolicy,
+  getRateLimitPolicy,
+} from '../../config/rate-limit.config';
 
 interface RateLimitUser {
   id?: string;
@@ -78,7 +81,9 @@ export class AdaptiveRateLimitGuard implements CanActivate {
    * Get the user type for rate limit policy selection
    * Backward compatible with the old strategy detection
    */
-  private getUserType(user?: RateLimitUser): 'public' | 'auth' | 'apiKey' | 'admin' {
+  private getUserType(
+    user?: RateLimitUser,
+  ): 'public' | 'auth' | 'apiKey' | 'admin' {
     if (!user) {
       return 'public';
     }
@@ -143,7 +148,9 @@ export class AdaptiveRateLimitGuard implements CanActivate {
 
     // IP-based for public/unauthenticated requests
     // Try x-forwarded-for first (for proxied requests)
-    const forwardedIp = request.headers['x-forwarded-for'] as string | undefined;
+    const forwardedIp = request.headers['x-forwarded-for'] as
+      | string
+      | undefined;
     if (forwardedIp) {
       const ips = forwardedIp.split(',').map(ip => ip.trim());
       if (ips.length > 0 && ips[0]) {

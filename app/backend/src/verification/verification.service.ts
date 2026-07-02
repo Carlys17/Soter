@@ -299,9 +299,10 @@ export class VerificationService {
       where: { id: claimId },
       data: {
         status: shouldVerify ? 'verified' : 'requested',
-        anchorMetadata: anchorMetadataToPersist === null
-          ? Prisma.JsonNull
-          : (anchorMetadataToPersist as Prisma.InputJsonValue),
+        anchorMetadata:
+          anchorMetadataToPersist === null
+            ? Prisma.JsonNull
+            : (anchorMetadataToPersist as Prisma.InputJsonValue),
       },
     });
 
