@@ -494,7 +494,7 @@ describe('AidEscrow Integration Tests', () => {
 
     it('should throw error when claiming without recipient address', async () => {
       const req = createMockRequest('');
-      (req as any).user = undefined;
+      req.user = undefined;
 
       await expect(
         controller.claimAidPackage('pkg-001', req as Request),

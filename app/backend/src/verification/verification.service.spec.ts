@@ -9,6 +9,7 @@ import { AuditService } from '../audit/audit.service';
 import { ClaimStatus, Prisma } from '@prisma/client';
 import { of } from 'rxjs';
 import { CorrelationPropagationUtil } from '../common/utils/correlation-propagation.util';
+import { VerificationMetadataService } from './metadata.service';
 
 // Mock CorrelationPropagationUtil since it's injected into VerificationService
 jest.mock('../common/utils/correlation-propagation.util');
@@ -142,7 +143,7 @@ describe('VerificationService', () => {
           },
         },
         {
-          provide: 'VerificationMetadataService',
+          provide: VerificationMetadataService,
           useValue: mockVerificationMetadataService,
         },
         {
@@ -323,7 +324,7 @@ describe('VerificationService', () => {
             },
           },
           {
-            provide: 'VerificationMetadataService',
+            provide: VerificationMetadataService,
             useValue: mockVerificationMetadataService,
           },
           {

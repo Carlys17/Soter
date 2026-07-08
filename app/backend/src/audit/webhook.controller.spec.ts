@@ -6,7 +6,7 @@ import { HmacGuard } from './hmac.guard';
 import {
   AiVerificationPayloadDto,
   VerificationStatus,
-} from '../ai-verification.dto'; // Changed from 'src/ai-verification.dto' to relative import
+} from '../ai-verification.dto';
 
 describe('WebhookController', () => {
   let controller: WebhookController;
