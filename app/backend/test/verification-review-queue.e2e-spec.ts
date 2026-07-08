@@ -6,8 +6,8 @@ import {
 import { Test } from '@nestjs/testing';
 import { ClaimStatus, CampaignStatus } from '@prisma/client';
 import request from 'supertest';
-import { AppModule } from 'src/app.module';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { AppModule } from '../src/app.module'; // Changed from 'src/app.module' to relative import
+import { PrismaService } from '../src/prisma/prisma.service'; // Changed from 'src/prisma/prisma.service' to relative import
 
 type ReviewQueueResponse = {
   items: Array<{

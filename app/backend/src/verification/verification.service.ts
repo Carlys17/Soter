@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,6 +27,7 @@ import * as crypto from 'crypto';
 import { CircuitBreaker } from '../common/utils/circuit-breaker.util';
 import { VerificationMetadataService } from './metadata.service';
 import { VerificationResultDto } from './dto/verification-result.dto';
+import { CorrelationPropagationUtil } from '../common/utils/correlation-propagation.util';
 
 // ---------------------------------------------------------------------------
 // OCR service types
@@ -141,6 +143,7 @@ export class VerificationService {
     private readonly auditService: AuditService,
     private readonly httpService: HttpService,
     private readonly verificationMetadataService: VerificationMetadataService,
+    private readonly correlationUtil: CorrelationPropagationUtil,
   ) {
     this.verificationMode =
       this.configService.get<string>('VERIFICATION_MODE') || 'mock';
@@ -606,6 +609,16 @@ the JSON verdict.
 
   private async callOCRService(documentUrl: string): Promise<OCRResponse> {
     try {
+      // Get correlation ID and propagate to OCR service
+      const correlationId = this.correlationUtil.getCurrentCorrelationId();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (correlationId) {
+        headers['x-correlation-id'] = correlationId;
+      }
+
       const response = await this.ocrCircuitBreaker.fire(() =>
         firstValueFrom(
           this.httpService.post(
@@ -613,7 +626,7 @@ the JSON verdict.
             { document_url: documentUrl },
             {
               timeout: this.aiServiceTimeout,
-              headers: { 'Content-Type': 'application/json' },
+              headers,
             },
           ),
         ),
@@ -640,6 +653,10 @@ the JSON verdict.
       }
     }
   }
+
+  // private getCorrelationIdForOutbound(): string | null {
+  //   return this.correlationUtil.getCurrentCorrelationId();
+  // }
 
   // -------------------------------------------------------------------------
   // Result builders
