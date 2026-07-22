@@ -1,4 +1,11 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+<<<<<<< Updated upstream
+=======
+  "git": {
+    "deploymentEnabled": false
+  },
+>>>>>>> Stashed changes
   "builds": [{ "src": "package.json", "use": "@vercel/next" }]
 }
