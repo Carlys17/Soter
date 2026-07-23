@@ -13,6 +13,7 @@ import httpx
 
 import metrics
 from config import settings
+from schemas.callback import AiCallbackPayload, CallbackStatus
 from services.load_shedder import ensure_queue_capacity
 from services.pii_scrubber import PIIScrubberService
 from services.humanitarian_verification import HumanitarianVerificationService
@@ -129,49 +130,72 @@ def update_task_status(
 
 def send_webhook_notification(task_id: str, status: str, result: Any = None, error: str = None) -> None:
     """
-    Send webhook notification to NestJS backend when task completes
-    
+    Send a signed webhook notification to the NestJS backend when a task
+    transitions to a terminal state.
+
+    The payload is serialised using :class:`~schemas.callback.AiCallbackPayload`
+    (the canonical contract) and signed with HMAC-SHA256 if ``WEBHOOK_SECRET``
+    is configured.  The resulting signature is sent in the
+    ``x-webhook-signature`` header, matching what :class:`WebhookHmacGuard`
+    on the backend expects.
+
     Args:
-        task_id: Unique identifier for the task
-        status: Final status (completed, failed)
-        result: Task result data (if completed)
-        error: Error message (if failed)
+        task_id: Unique identifier of the completed/failed task.
+        status:  Terminal status string ("completed" or "failed").
+        result:  Task output dict (required when status="completed").
+        error:   Error message string (required when status="failed").
     """
     if not settings.backend_webhook_url:
         logger.warning("Backend webhook URL not configured, skipping notification")
         return
-    
-    payload = {
-        'task_id': task_id,
-        'status': status,
-        'service': 'soter-ai-service',
-        'timestamp': time.time(),
-    }
-    
-    if result is not None:
-        payload['result'] = result
-    
-    if error:
-        payload['error'] = error
-    
+
     try:
-        # Fire and forget - don't block the task completion
+        payload = AiCallbackPayload.build(
+            task_id=task_id,
+            status=CallbackStatus(status),
+            result=result,
+            error=error,
+        )
+    except Exception as exc:
+        logger.error(f"Failed to build callback payload for task {task_id}: {exc}")
+        return
+
+    body_bytes = payload.to_json_bytes()
+    headers: dict = {"Content-Type": "application/json"}
+
+    if settings.webhook_secret:
+        headers["x-webhook-signature"] = payload.sign(settings.webhook_secret)
+    else:
+        logger.warning(
+            "WEBHOOK_SECRET not configured — sending unsigned webhook for task %s. "
+            "Set WEBHOOK_SECRET in .env to enable HMAC verification.",
+            task_id,
+        )
+
+    try:
         import threading
-        def send_notification():
+
+        def send_notification() -> None:
             try:
                 with httpx.Client(timeout=10.0) as client:
-                    response = client.post(settings.backend_webhook_url, json=payload)
+                    response = client.post(
+                        settings.backend_webhook_url,
+                        content=body_bytes,
+                        headers=headers,
+                    )
                     if response.status_code >= 400:
-                        logger.error(f"Webhook notification failed: {response.status_code} - {response.text}")
+                        logger.error(
+                            f"Webhook notification failed: {response.status_code} - {response.text}"
+                        )
                     else:
                         logger.info(f"Webhook notification sent for task {task_id}")
-            except Exception as e:
-                logger.error(f"Failed to send webhook notification: {e}")
-        
-        thread = threading.Thread(target=send_notification)
+            except Exception as exc:
+                logger.error(f"Failed to send webhook notification: {exc}")
+
+        thread = threading.Thread(target=send_notification, daemon=True)
         thread.start()
-    except Exception as e:
-        logger.error(f"Error setting up webhook notification: {e}")
+    except Exception as exc:
+        logger.error(f"Error setting up webhook notification thread: {exc}")
 
 
 def process_heavy_inference_impl(self, task_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
