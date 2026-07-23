@@ -87,7 +87,7 @@ describe('ArtifactOwnershipTokenService', () => {
     });
 
     it('should store token hash in database', async () => {
-      const token = await service.createToken({
+      const _token = await service.createToken({
         artifactId: mockArtifactId,
         orgId: mockOrgId,
         userId: mockUserId,
