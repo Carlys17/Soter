@@ -63,7 +63,7 @@ export class UploadSessionService {
     const session = await this.store.createSession(
       {
         ownerId,
-        orgId,
+        orgId: orgId ?? null,
         fileName: dto.fileName,
         mimeType: dto.mimeType,
         totalSize: dto.totalSize,
