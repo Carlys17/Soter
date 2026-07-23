@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     # Backend webhook URL for notifications
     backend_webhook_url: Optional[str] = "http://localhost:3001/ai/webhook"
 
+    # Shared HMAC secret for signing outbound webhook payloads.
+    # Must match WEBHOOK_SECRET on the NestJS backend.
+    # If unset, webhook calls are sent unsigned (development only).
+    webhook_secret: Optional[str] = None
+
     # Proof-of-life settings
     proof_of_life_confidence_threshold: float = 0.65
     proof_of_life_min_face_size: int = 80

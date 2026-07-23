@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { EvidenceService } from './evidence.service';
 import { EvidenceController } from './evidence.controller';
+import { ArtifactOwnershipTokenService } from './artifact-ownership-token.service';
+import { ArtifactTokenGuard } from '../common/guards/artifact-token.guard';
 import { UploadSessionService } from './upload-session.service';
 import { UploadSessionController } from './upload-session.controller';
 import { UploadSessionStore } from './upload-session.store';
@@ -16,9 +18,11 @@ import { FingerprintService } from './fingerprint.service';
   providers: [
     EvidenceService,
     FingerprintService,
+    ArtifactOwnershipTokenService,
+    ArtifactTokenGuard,
     UploadSessionService,
     UploadSessionStore,
   ],
-  exports: [FingerprintService],
+  exports: [FingerprintService, ArtifactOwnershipTokenService],
 })
 export class EvidenceModule {}
