@@ -144,7 +144,10 @@ export class ArtifactOwnershipTokenService {
         .digest();
       const suppliedSignature = Buffer.from(signatureB64, 'base64url');
 
-      if (!crypto.timingSafeEqual(expectedSignature, suppliedSignature)) {
+      if (
+        expectedSignature.length !== suppliedSignature.length ||
+        !crypto.timingSafeEqual(expectedSignature, suppliedSignature)
+      ) {
         return { valid: false, error: 'invalid_signature' };
       }
 
@@ -156,7 +159,7 @@ export class ArtifactOwnershipTokenService {
 
       // Check expiration
       const now = Math.floor(Date.now() / 1000);
-      if (payload.exp < now) {
+      if (payload.exp <= now) {
         return { valid: false, error: 'token_expired' };
       }
 
