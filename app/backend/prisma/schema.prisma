@@ -584,6 +584,25 @@ model UploadChunk {
   @@index([sessionId])
 }
 
+model ArtifactAccessToken {
+  id            String   @id @default(cuid())
+  artifactId    String
+  orgId         String
+  userId        String
+  role          String
+  tokenHash     String   @unique // SHA-256 hash of the token for revocation tracking
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime @default(now())
+
+  @@index([artifactId])
+  @@index([orgId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
 enum NotificationOutboxStatus {
   pending
   enqueued
