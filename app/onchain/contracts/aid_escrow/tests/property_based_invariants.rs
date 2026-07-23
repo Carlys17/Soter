@@ -1,4 +1,6 @@
 #![cfg(test)]
+#![allow(clippy::all)]
+#![allow(dead_code)]
 
 use aid_escrow::{AidEscrow, AidEscrowClient, Config};
 use rand::rngs::StdRng;
@@ -24,7 +26,14 @@ fn default_ledger_info() -> LedgerInfo {
     }
 }
 
-fn setup_env() -> (Env, AidEscrowClient<'static>, Address, Address, StellarAssetClient<'static>, TokenClient<'static>) {
+fn setup_env() -> (
+    Env,
+    AidEscrowClient<'static>,
+    Address,
+    Address,
+    StellarAssetClient<'static>,
+    TokenClient<'static>,
+) {
     let env = Env::default();
     env.ledger().set(default_ledger_info());
     env.mock_all_auths();
@@ -74,7 +83,17 @@ fn assert_invariants(
     // (1) total_locked + total_claimed + total_refunded + total_withdrawn <= total_funded
     let accounted = locked + claimed + total_refunded + total_withdrawn;
     if accounted > total_funded {
-        dump_failure(iteration, seed, ops, client, token_client, token, total_funded, total_refunded, total_withdrawn);
+        dump_failure(
+            iteration,
+            seed,
+            ops,
+            client,
+            token_client,
+            token,
+            total_funded,
+            total_refunded,
+            total_withdrawn,
+        );
         panic!(
             "inv(1) violated at iter={} step={}: locked={} + claimed={} + refunded={} + withdrawn={} = {} > funded={}",
             iteration, step, locked, claimed, total_refunded, total_withdrawn, accounted, total_funded,
@@ -83,7 +102,17 @@ fn assert_invariants(
 
     // (2) contract token balance >= total_locked (solvency)
     if balance < locked {
-        dump_failure(iteration, seed, ops, client, token_client, token, total_funded, total_refunded, total_withdrawn);
+        dump_failure(
+            iteration,
+            seed,
+            ops,
+            client,
+            token_client,
+            token,
+            total_funded,
+            total_refunded,
+            total_withdrawn,
+        );
         panic!(
             "inv(2) violated at iter={} step={}: balance={} < locked={}",
             iteration, step, balance, locked,
@@ -91,8 +120,24 @@ fn assert_invariants(
     }
 
     // (3) no negative i128 values
-    if locked < 0 || claimed < 0 || total_refunded < 0 || total_withdrawn < 0 || total_funded < 0 || balance < 0 {
-        dump_failure(iteration, seed, ops, client, token_client, token, total_funded, total_refunded, total_withdrawn);
+    if locked < 0
+        || claimed < 0
+        || total_refunded < 0
+        || total_withdrawn < 0
+        || total_funded < 0
+        || balance < 0
+    {
+        dump_failure(
+            iteration,
+            seed,
+            ops,
+            client,
+            token_client,
+            token,
+            total_funded,
+            total_refunded,
+            total_withdrawn,
+        );
         panic!(
             "inv(3) violated at iter={} step={}: locked={} claimed={} refunded={} withdrawn={} funded={} balance={}",
             iteration, step, locked, claimed, total_refunded, total_withdrawn, total_funded, balance,
@@ -104,7 +149,17 @@ fn assert_invariants(
     // So claimed can exceed locked. Correct invariant: claimed+refunded+withdrawn <= funded.
     let lifetime_accounted = claimed + total_refunded + total_withdrawn;
     if lifetime_accounted > total_funded {
-        dump_failure(iteration, seed, ops, client, token_client, token, total_funded, total_refunded, total_withdrawn);
+        dump_failure(
+            iteration,
+            seed,
+            ops,
+            client,
+            token_client,
+            token,
+            total_funded,
+            total_refunded,
+            total_withdrawn,
+        );
         panic!(
             "inv(4) violated at iter={} step={}: claimed(cum)={} + refunded={} + withdrawn={} = {} > funded={}",
             iteration, step, claimed, total_refunded, total_withdrawn, lifetime_accounted, total_funded,
@@ -135,9 +190,18 @@ fn dump_failure(
         eprintln!("║ {:>3}: {:<38} {:>4} {}", i, op, status, err);
     }
     eprintln!("╠══════════════════ STATE SNAPSHOT ═════════════════════╣");
-    eprintln!("║ total_locked:      {:<38} ║", client.get_total_locked(token));
-    eprintln!("║ total_claimed:     {:<38} ║", client.get_total_claimed(token));
-    eprintln!("║ contract_balance:  {:<38} ║", token_client.balance(&client.address));
+    eprintln!(
+        "║ total_locked:      {:<38} ║",
+        client.get_total_locked(token)
+    );
+    eprintln!(
+        "║ total_claimed:     {:<38} ║",
+        client.get_total_claimed(token)
+    );
+    eprintln!(
+        "║ contract_balance:  {:<38} ║",
+        token_client.balance(&client.address)
+    );
     eprintln!("║ total_funded:      {:<38} ║", total_funded);
     eprintln!("║ total_refunded:    {:<38} ║", total_refunded);
     eprintln!("║ total_withdrawn:   {:<38} ║", total_withdrawn);
@@ -193,16 +257,39 @@ fn test_fund_accounting_invariants() {
                 let pid = next_pkg_id;
                 next_pkg_id += 1;
 
-                match client.try_create_package(&admin, &pid, &recipient, &amount, &token, &expires_at, &Map::new(&env)) {
+                match client.try_create_package(
+                    &admin,
+                    &pid,
+                    &recipient,
+                    &amount,
+                    &token,
+                    &expires_at,
+                    &Map::new(&env),
+                ) {
                     Ok(Ok(_)) => {
                         pkg_list.push((pid, recipient, amount, expires_at));
-                        ops_log.push((step, format!("create(pkg={}, amt={}, exp={})", pid, amount, expires_at), true, String::new()));
+                        ops_log.push((
+                            step,
+                            format!("create(pkg={}, amt={}, exp={})", pid, amount, expires_at),
+                            true,
+                            String::new(),
+                        ));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("create(pkg={}, amt={})", pid, amount), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("create(pkg={}, amt={})", pid, amount),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     Err(_) => {
-                        ops_log.push((step, format!("create(pkg={}, amt={})", pid, amount), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("create(pkg={}, amt={})", pid, amount),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else {
@@ -212,18 +299,44 @@ fn test_fund_accounting_invariants() {
                 match client.try_withdraw_surplus(&to, &amount, &token) {
                     Ok(Ok(())) => {
                         total_withdrawn += amount;
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), true, String::new()));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            true,
+                            String::new(),
+                        ));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     Err(_) => {
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             }
 
-            assert_invariants(&client, &token_client, &token, total_funded, total_refunded, total_withdrawn, iter as u64, step, seed, &ops_log);
+            assert_invariants(
+                &client,
+                &token_client,
+                &token,
+                total_funded,
+                total_refunded,
+                total_withdrawn,
+                iter as u64,
+                step,
+                seed,
+                &ops_log,
+            );
         }
     }
 }
@@ -265,7 +378,15 @@ fn test_claim_revolve_invariants() {
             let pid = next_pkg_id;
             next_pkg_id += 1;
 
-            match client.try_create_package(&admin, &pid, &recipient, &amount, &token, &expires_at, &Map::new(&env)) {
+            match client.try_create_package(
+                &admin,
+                &pid,
+                &recipient,
+                &amount,
+                &token,
+                &expires_at,
+                &Map::new(&env),
+            ) {
                 Ok(Ok(_)) => {
                     pkg_list.push((pid, recipient, amount, expires_at));
                 }
@@ -288,10 +409,20 @@ fn test_claim_revolve_invariants() {
                         ops_log.push((step, format!("claim(pkg={})", pid), true, String::new()));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("claim(pkg={})", pid), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("claim(pkg={})", pid),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     Err(_) => {
-                        ops_log.push((step, format!("claim(pkg={})", pid), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("claim(pkg={})", pid),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if action < 55 && !pkg_list.is_empty() {
@@ -304,10 +435,20 @@ fn test_claim_revolve_invariants() {
                         ops_log.push((step, format!("revoke(pkg={})", pid), true, String::new()));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("revoke(pkg={})", pid), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("revoke(pkg={})", pid),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     Err(_) => {
-                        ops_log.push((step, format!("revoke(pkg={})", pid), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("revoke(pkg={})", pid),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if action < 70 && !pkg_list.is_empty() {
@@ -325,10 +466,20 @@ fn test_claim_revolve_invariants() {
                         ops_log.push((step, format!("refund(pkg={})", pid), true, String::new()));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("refund(pkg={})", pid), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("refund(pkg={})", pid),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     Err(_) => {
-                        ops_log.push((step, format!("refund(pkg={})", pid), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("refund(pkg={})", pid),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if action < 85 {
@@ -340,16 +491,39 @@ fn test_claim_revolve_invariants() {
                 let pid = next_pkg_id;
                 next_pkg_id += 1;
 
-                match client.try_create_package(&admin, &pid, &recipient, &amount, &token, &expires_at, &Map::new(&env)) {
+                match client.try_create_package(
+                    &admin,
+                    &pid,
+                    &recipient,
+                    &amount,
+                    &token,
+                    &expires_at,
+                    &Map::new(&env),
+                ) {
                     Ok(Ok(_)) => {
                         pkg_list.push((pid, recipient, amount, expires_at));
-                        ops_log.push((step, format!("create(pkg={}, amt={})", pid, amount), true, String::new()));
+                        ops_log.push((
+                            step,
+                            format!("create(pkg={}, amt={})", pid, amount),
+                            true,
+                            String::new(),
+                        ));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("create(pkg={}, amt={})", pid, amount), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("create(pkg={}, amt={})", pid, amount),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     Err(_) => {
-                        ops_log.push((step, format!("create(pkg={}, amt={})", pid, amount), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("create(pkg={}, amt={})", pid, amount),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if action < 95 {
@@ -359,23 +533,54 @@ fn test_claim_revolve_invariants() {
                 match client.try_withdraw_surplus(&to, &amount, &token) {
                     Ok(Ok(())) => {
                         total_withdrawn += amount;
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), true, String::new()));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            true,
+                            String::new(),
+                        ));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     Err(_) => {
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else {
                 // ADVANCE time
                 let seconds = iter_rng.gen_range(60..=7200) as u64;
                 advance_time(&env, seconds);
-                ops_log.push((step, format!("advance_time({}s)", seconds), true, String::new()));
+                ops_log.push((
+                    step,
+                    format!("advance_time({}s)", seconds),
+                    true,
+                    String::new(),
+                ));
             }
 
-            assert_invariants(&client, &token_client, &token, total_funded, total_refunded, total_withdrawn, iter as u64, step, seed, &ops_log);
+            assert_invariants(
+                &client,
+                &token_client,
+                &token,
+                total_funded,
+                total_refunded,
+                total_withdrawn,
+                iter as u64,
+                step,
+                seed,
+                &ops_log,
+            );
         }
     }
 }
@@ -406,7 +611,18 @@ fn test_full_lifecycle_invariants() {
         client.fund(&token, &admin, &fund_amount);
         total_funded += fund_amount;
         ops_log.push((0, format!("fund({})", fund_amount), true, String::new()));
-        assert_invariants(&client, &token_client, &token, total_funded, total_refunded, total_withdrawn, iter as u64, 0, seed, &ops_log);
+        assert_invariants(
+            &client,
+            &token_client,
+            &token,
+            total_funded,
+            total_refunded,
+            total_withdrawn,
+            iter as u64,
+            0,
+            seed,
+            &ops_log,
+        );
 
         // Phase 2: Create several packages (some will be claimed, some revoked, some refunded)
         let n_packages = iter_rng.gen_range(4..=10) as usize;
@@ -423,19 +639,53 @@ fn test_full_lifecycle_invariants() {
             next_pkg_id += 1;
             let label = labels[i % labels.len()];
 
-            match client.try_create_package(&admin, &pid, &recipient, &amount, &token, &expires_at, &Map::new(&env)) {
+            match client.try_create_package(
+                &admin,
+                &pid,
+                &recipient,
+                &amount,
+                &token,
+                &expires_at,
+                &Map::new(&env),
+            ) {
                 Ok(Ok(_)) => {
                     packages.push((pid, recipient, amount, expires_at, label));
-                    ops_log.push((i + 1, format!("create(pkg={}, amt={}, label={})", pid, amount, label), true, String::new()));
+                    ops_log.push((
+                        i + 1,
+                        format!("create(pkg={}, amt={}, label={})", pid, amount, label),
+                        true,
+                        String::new(),
+                    ));
                 }
                 Ok(Err(e)) => {
-                    ops_log.push((i + 1, format!("create(pkg={}, amt={})", pid, amount), false, format!("{:?}", e)));
+                    ops_log.push((
+                        i + 1,
+                        format!("create(pkg={}, amt={})", pid, amount),
+                        false,
+                        format!("{:?}", e),
+                    ));
                 }
                 Err(_) => {
-                    ops_log.push((i + 1, format!("create(pkg={}, amt={})", pid, amount), false, "host_err".into()));
+                    ops_log.push((
+                        i + 1,
+                        format!("create(pkg={}, amt={})", pid, amount),
+                        false,
+                        "host_err".into(),
+                    ));
                 }
             }
-            assert_invariants(&client, &token_client, &token, total_funded, total_refunded, total_withdrawn, iter as u64, (i + 1) as usize, seed, &ops_log);
+            assert_invariants(
+                &client,
+                &token_client,
+                &token,
+                total_funded,
+                total_refunded,
+                total_withdrawn,
+                iter as u64,
+                (i + 1) as usize,
+                seed,
+                &ops_log,
+            );
         }
 
         // Phase 3: Execute the labeled action on each package
@@ -444,32 +694,58 @@ fn test_full_lifecycle_invariants() {
         for (i, &(pid, ref _recipient, amount, expires_at, label)) in packages.iter().enumerate() {
             let step = base_step + i;
             match label {
-                "claim" => {
-                    match client.try_claim(&pid) {
-                        Ok(Ok(())) => {
-                            ops_log.push((step, format!("claim(pkg={}, amt={})", pid, amount), true, String::new()));
-                        }
-                        Ok(Err(e)) => {
-                            ops_log.push((step, format!("claim(pkg={})", pid), false, format!("{:?}", e)));
-                        }
-                        Err(_) => {
-                            ops_log.push((step, format!("claim(pkg={})", pid), false, "host_err".into()));
-                        }
+                "claim" => match client.try_claim(&pid) {
+                    Ok(Ok(())) => {
+                        ops_log.push((
+                            step,
+                            format!("claim(pkg={}, amt={})", pid, amount),
+                            true,
+                            String::new(),
+                        ));
                     }
-                }
-                "revoke" => {
-                    match client.try_revoke(&pid) {
-                        Ok(Ok(())) => {
-                            ops_log.push((step, format!("revoke(pkg={}, amt={})", pid, amount), true, String::new()));
-                        }
-                        Ok(Err(e)) => {
-                            ops_log.push((step, format!("revoke(pkg={})", pid), false, format!("{:?}", e)));
-                        }
-                        Err(_) => {
-                            ops_log.push((step, format!("revoke(pkg={})", pid), false, "host_err".into()));
-                        }
+                    Ok(Err(e)) => {
+                        ops_log.push((
+                            step,
+                            format!("claim(pkg={})", pid),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
-                }
+                    Err(_) => {
+                        ops_log.push((
+                            step,
+                            format!("claim(pkg={})", pid),
+                            false,
+                            "host_err".into(),
+                        ));
+                    }
+                },
+                "revoke" => match client.try_revoke(&pid) {
+                    Ok(Ok(())) => {
+                        ops_log.push((
+                            step,
+                            format!("revoke(pkg={}, amt={})", pid, amount),
+                            true,
+                            String::new(),
+                        ));
+                    }
+                    Ok(Err(e)) => {
+                        ops_log.push((
+                            step,
+                            format!("revoke(pkg={})", pid),
+                            false,
+                            format!("{:?}", e),
+                        ));
+                    }
+                    Err(_) => {
+                        ops_log.push((
+                            step,
+                            format!("revoke(pkg={})", pid),
+                            false,
+                            "host_err".into(),
+                        ));
+                    }
+                },
                 "refund" => {
                     let now = env.ledger().timestamp();
                     if expires_at > 0 && now <= expires_at {
@@ -478,19 +754,45 @@ fn test_full_lifecycle_invariants() {
                     match client.try_refund(&pid) {
                         Ok(Ok(())) => {
                             total_refunded += amount;
-                            ops_log.push((step, format!("refund(pkg={}, amt={})", pid, amount), true, String::new()));
+                            ops_log.push((
+                                step,
+                                format!("refund(pkg={}, amt={})", pid, amount),
+                                true,
+                                String::new(),
+                            ));
                         }
                         Ok(Err(e)) => {
-                            ops_log.push((step, format!("refund(pkg={})", pid), false, format!("{:?}", e)));
+                            ops_log.push((
+                                step,
+                                format!("refund(pkg={})", pid),
+                                false,
+                                format!("{:?}", e),
+                            ));
                         }
                         Err(_) => {
-                            ops_log.push((step, format!("refund(pkg={})", pid), false, "host_err".into()));
+                            ops_log.push((
+                                step,
+                                format!("refund(pkg={})", pid),
+                                false,
+                                "host_err".into(),
+                            ));
                         }
                     }
                 }
                 _ => unreachable!(),
             }
-            assert_invariants(&client, &token_client, &token, total_funded, total_refunded, total_withdrawn, iter as u64, step, seed, &ops_log);
+            assert_invariants(
+                &client,
+                &token_client,
+                &token,
+                total_funded,
+                total_refunded,
+                total_withdrawn,
+                iter as u64,
+                step,
+                seed,
+                &ops_log,
+            );
         }
 
         // Phase 4: Withdraw any remaining surplus
@@ -500,16 +802,42 @@ fn test_full_lifecycle_invariants() {
         match client.try_withdraw_surplus(&to, &surplus_amount, &token) {
             Ok(Ok(())) => {
                 total_withdrawn += surplus_amount;
-                ops_log.push((final_step, format!("withdraw_surplus({})", surplus_amount), true, String::new()));
+                ops_log.push((
+                    final_step,
+                    format!("withdraw_surplus({})", surplus_amount),
+                    true,
+                    String::new(),
+                ));
             }
             Ok(Err(e)) => {
-                ops_log.push((final_step, format!("withdraw_surplus({})", surplus_amount), false, format!("{:?}", e)));
+                ops_log.push((
+                    final_step,
+                    format!("withdraw_surplus({})", surplus_amount),
+                    false,
+                    format!("{:?}", e),
+                ));
             }
             Err(_) => {
-                ops_log.push((final_step, format!("withdraw_surplus({})", surplus_amount), false, "host_err".into()));
+                ops_log.push((
+                    final_step,
+                    format!("withdraw_surplus({})", surplus_amount),
+                    false,
+                    "host_err".into(),
+                ));
             }
         }
-        assert_invariants(&client, &token_client, &token, total_funded, total_refunded, total_withdrawn, iter as u64, final_step, seed, &ops_log);
+        assert_invariants(
+            &client,
+            &token_client,
+            &token,
+            total_funded,
+            total_refunded,
+            total_withdrawn,
+            iter as u64,
+            final_step,
+            seed,
+            &ops_log,
+        );
     }
 }
 
@@ -569,16 +897,44 @@ fn test_randomized_state_machine() {
                 let pid = next_pkg_id;
                 next_pkg_id += 1;
 
-                match client.try_create_package(&admin, &pid, &recipient, &amount, &token, &expires_at, &Map::new(&env)) {
+                match client.try_create_package(
+                    &admin,
+                    &pid,
+                    &recipient,
+                    &amount,
+                    &token,
+                    &expires_at,
+                    &Map::new(&env),
+                ) {
                     Ok(Ok(_)) => {
-                        packages.push(TrackedPkg { id: pid, recipient, amount, expires_at });
-                        ops_log.push((step, format!("create(id={}, amt={})", pid, amount), true, String::new()));
+                        packages.push(TrackedPkg {
+                            id: pid,
+                            recipient,
+                            amount,
+                            expires_at,
+                        });
+                        ops_log.push((
+                            step,
+                            format!("create(id={}, amt={})", pid, amount),
+                            true,
+                            String::new(),
+                        ));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("create(id={}, amt={})", pid, amount), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("create(id={}, amt={})", pid, amount),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     _ => {
-                        ops_log.push((step, format!("create(id={}, amt={})", pid, amount), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("create(id={}, amt={})", pid, amount),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if roll < 65 && !packages.is_empty() {
@@ -591,10 +947,20 @@ fn test_randomized_state_machine() {
                         ops_log.push((step, format!("claim(id={})", pkg.id), true, String::new()));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("claim(id={})", pkg.id), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("claim(id={})", pkg.id),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     _ => {
-                        ops_log.push((step, format!("claim(id={})", pkg.id), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("claim(id={})", pkg.id),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if roll < 75 && !packages.is_empty() {
@@ -607,10 +973,20 @@ fn test_randomized_state_machine() {
                         ops_log.push((step, format!("revoke(id={})", pkg.id), true, String::new()));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("revoke(id={})", pkg.id), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("revoke(id={})", pkg.id),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     _ => {
-                        ops_log.push((step, format!("revoke(id={})", pkg.id), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("revoke(id={})", pkg.id),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if roll < 85 && !packages.is_empty() {
@@ -628,10 +1004,20 @@ fn test_randomized_state_machine() {
                         ops_log.push((step, format!("refund(id={})", pkg.id), true, String::new()));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("refund(id={})", pkg.id), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("refund(id={})", pkg.id),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     _ => {
-                        ops_log.push((step, format!("refund(id={})", pkg.id), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("refund(id={})", pkg.id),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else if roll < 92 {
@@ -641,23 +1027,54 @@ fn test_randomized_state_machine() {
                 match client.try_withdraw_surplus(&to, &amount, &token) {
                     Ok(Ok(())) => {
                         total_withdrawn += amount;
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), true, String::new()));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            true,
+                            String::new(),
+                        ));
                     }
                     Ok(Err(e)) => {
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), false, format!("{:?}", e)));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            false,
+                            format!("{:?}", e),
+                        ));
                     }
                     _ => {
-                        ops_log.push((step, format!("withdraw_surplus({})", amount), false, "host_err".into()));
+                        ops_log.push((
+                            step,
+                            format!("withdraw_surplus({})", amount),
+                            false,
+                            "host_err".into(),
+                        ));
                     }
                 }
             } else {
                 // ADVANCE_TIME
                 let seconds = iter_rng.gen_range(60..=10800) as u64;
                 advance_time(&env, seconds);
-                ops_log.push((step, format!("advance_time({}s)", seconds), true, String::new()));
+                ops_log.push((
+                    step,
+                    format!("advance_time({}s)", seconds),
+                    true,
+                    String::new(),
+                ));
             }
 
-            assert_invariants(&client, &token_client, &token, total_funded, total_refunded, total_withdrawn, iter as u64, step, seed, &ops_log);
+            assert_invariants(
+                &client,
+                &token_client,
+                &token,
+                total_funded,
+                total_refunded,
+                total_withdrawn,
+                iter as u64,
+                step,
+                seed,
+                &ops_log,
+            );
         }
     }
 }
