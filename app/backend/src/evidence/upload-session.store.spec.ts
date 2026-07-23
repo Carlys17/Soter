@@ -25,12 +25,10 @@ const mockRedis = {
   del: jest.fn(),
   setBuffer: jest.fn(),
   getBuffer: jest.fn(),
-  client: {
-    sadd: jest.fn(),
-    smembers: jest.fn(),
-    sismember: jest.fn(),
-    expire: jest.fn(),
-  },
+  sadd: jest.fn(),
+  smembers: jest.fn(),
+  sismember: jest.fn(),
+  expire: jest.fn(),
 };
 
 const mockPrisma = {
@@ -179,13 +177,13 @@ describe('UploadSessionStore', () => {
 
   describe('chunk registry', () => {
     it('adds chunk to Redis Set and Prisma', async () => {
-      mockRedis.client.sadd.mockResolvedValue(1);
-      mockRedis.client.expire.mockResolvedValue(1);
+      mockRedis.sadd.mockResolvedValue(1);
+      mockRedis.expire.mockResolvedValue(1);
       mockPrisma.uploadChunk.upsert.mockResolvedValue({});
 
       await store.addReceivedChunk('sess-1', 0, 100, 'abc', '/tmp/f', 3600);
 
-      expect(mockRedis.client.sadd).toHaveBeenCalledWith(
+      expect(mockRedis.sadd).toHaveBeenCalledWith(
         'upload:received:sess-1',
         '0',
       );
@@ -193,7 +191,7 @@ describe('UploadSessionStore', () => {
     });
 
     it('reports chunk as received via Redis Set', async () => {
-      mockRedis.client.sismember.mockResolvedValue(1);
+      mockRedis.sismember.mockResolvedValue(true);
 
       const result = await store.isChunkReceived('sess-1', 0);
       expect(result).toBe(true);
@@ -201,7 +199,7 @@ describe('UploadSessionStore', () => {
     });
 
     it('falls back to Prisma when Redis misses', async () => {
-      mockRedis.client.sismember.mockResolvedValue(0);
+      mockRedis.sismember.mockResolvedValue(false);
       mockPrisma.uploadChunk.findUnique.mockResolvedValue({ index: 0 } as any);
 
       const result = await store.isChunkReceived('sess-1', 0);
@@ -209,7 +207,7 @@ describe('UploadSessionStore', () => {
     });
 
     it('returns false for unreceived chunk', async () => {
-      mockRedis.client.sismember.mockResolvedValue(0);
+      mockRedis.sismember.mockResolvedValue(false);
       mockPrisma.uploadChunk.findUnique.mockResolvedValue(null);
 
       const result = await store.isChunkReceived('sess-1', 5);
@@ -217,14 +215,14 @@ describe('UploadSessionStore', () => {
     });
 
     it('returns all received chunk indices from Redis', async () => {
-      mockRedis.client.smembers.mockResolvedValue(['0', '2']);
+      mockRedis.smembers.mockResolvedValue(['0', '2']);
 
       const result = await store.getReceivedChunks('sess-1');
       expect(result).toEqual([0, 2]);
     });
 
     it('falls back to Prisma for received chunks on Redis miss', async () => {
-      mockRedis.client.smembers.mockResolvedValue([]);
+      mockRedis.smembers.mockResolvedValue([]);
       mockPrisma.uploadChunk.findMany.mockResolvedValue([
         { index: 0 },
         { index: 1 },
